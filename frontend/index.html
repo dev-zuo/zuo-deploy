@@ -1,12 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>zuo-deploy</title>
+  <!-- 导入样式 -->
+  <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
+  <!-- 导入 Vue 3 -->
+  <script src="//unpkg.com/vue@next"></script>
+  <!-- 导入组件库 -->
+  <script src="//unpkg.com/element-plus"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
+
 <body>
-  我是 js-deploy 的静态页面
+  <div id="app">
+    <el-button type="primary" @click="deploy">部署</el-button>
+
+    <div>
+      <p>deployLog:</p>
+      <pre>{{deployLog}}</pre>
+    </div>
+  </div>
+  <script>
+    const app = {
+      data() {
+        return {
+          counter: 0,
+          deployLog: '点击按钮进行部署'
+        }
+      },
+      methods: {
+        deploy() {
+          this.deployLog = '后端部署中，请稍等...'
+          axios.post('/deploy')
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              this.deployLog = response.data.msg
+            })
+            .catch(function (error) {
+              // handle error
+              console.log(error);
+              this.deployLog = error
+            })
+            .then(function () {
+              // always executed
+            });
+        }
+      }
+    }
+
+    Vue.createApp(app).use(ElementPlus).mount('#app')
+  </script>
 </body>
+
 </html>

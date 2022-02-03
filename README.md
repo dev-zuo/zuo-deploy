@@ -9,7 +9,32 @@ npm install zuo-deploy -g
 zuodeploy start
 # 再访问 127.0.0.1:7777 打开操作界面
 ```
+![docImages/deploy-add-sh.png](./docImages/deploy-add-sh.png)
 
+点击部署，会执行当前目录下的 deploy-master.sh，
+
+需要自己在需要部署的项目里，创建一个 deploy-master.sh 脚本，如果没有会直接报错，如上图。
+
+```shell
+# https://github.com/zuoxiaobai/zuo11.com 部署脚本示例
+# deploy-master.sh
+echo "开始部署..."
+
+echo "git pull"
+git pull 
+
+echo "zuoblog init"
+zuoblog init --disable-dev-server
+
+echo "部署完成!"
+```
+![docImages/deploy-log.png](./docImages/deploy-log.png)
+
+针对 log 可能输出较慢的问题，在 console 里也有打出 log，看服务器控制台可以实时看 log。
+
+后续优化，使用 socket 实时将 log 信息传给前端
+
+![docImages/deploy-terminal-log.png](./docImages/deploy-terminal-log.png)
 ## 项目从 0 到 1 过程
 
 ### 基础结构
