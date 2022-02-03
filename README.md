@@ -1,7 +1,19 @@
 # zuo-deploy
 用 js 写一个 CI、CD 工具
 
-## start
+## 使用
+```bash
+# 全局安装
+npm install zuo-deploy -g
+# 开启服务
+zuodeploy start
+# 再访问 127.0.0.1:7777 打开操作界面
+```
+
+## 项目从 0 到 1 过程
+
+### 基础结构
+
 ```bash
 # 初始化 package.json
 npm init
@@ -41,9 +53,10 @@ app.listen("7777", () => console.log("服务监听 7777 端口"));
 ```
 
 ### jsdeploy 命令行工具实现
-npm install zuo-deploy -g
 
-zuodeploy start 开启服务
+>  注意包名先在 npm 官网查看是否有重复的
+
+预期 npm install zuo-deploy -g；zuodeploy start 开启服务
 
 方法：
 ```js
@@ -69,8 +82,7 @@ package.json 中设置了 type 为 module 且 bin/xx 没有加 js 后缀时会�
 
 node 默认的 commonjs 可以省略后缀，如果是 type = module 使用 ES Modules 需要有后缀，加 js 或 cjs（如果需要用到 __dirname 或 require 就用这个）
 
-但有后缀，命令怎么执行呢？可以正常执行！ 如果之前执行过 sudo npm link，换个命名名称试试
-或 rm /usr/local/bin/zuodeploy
+sudo npm link 如果失败，换个 bin 命令名称 或 rm /usr/local/bin/zuodeploy
 
 npm link 与 package.json 中的 bin 参考：[package.json - bin](https://docs.npmjs.com/cli/v8/configuring-npm/package-json#bin)，本质上是创建一个 symbol link，本机任何地方执行 bin 指定的命令会链接到指定的文件执行。是本地调试 npm 命令行工具必备的方法
 
@@ -90,8 +102,5 @@ npm publish # 可能会提示名称已存在，换个名字，获取使用作用
 npm config set registry=https://registry.npm.taobao.org # 还原淘宝镜像
 ```
 
-
-
-
-
+### 
 
