@@ -1,7 +1,6 @@
-import Koa from "koa";
-import KoaStatic from "koa-static";
-import KoaRouter from "koa-router";
-import path from "path";
+const Koa = require("koa");
+const KoaStatic = require("koa-static");
+const KoaRouter = require("koa-router");
 
 class ZuoDeploy {
   start() {
@@ -14,11 +13,10 @@ class ZuoDeploy {
       };
     });
 
-    app.use(new KoaStatic(path.resolve() + "/frontend"));
+    app.use(new KoaStatic(__dirname + "/frontend"));
     app.use(router.routes()).use(router.allowedMethods());
-
     app.listen("7777", () => console.log("服务监听 7777 端口"));
   }
 }
 
-export default ZuoDeploy;
+module.exports = ZuoDeploy;
