@@ -1,6 +1,6 @@
 {
-  "name": "js-deploy",
-  "version": "0.1.0",
+  "name": "zuo-deploy",
+  "version": "0.1.1",
   "description": "CI CD server",
   "main": "index.js",
   "scripts": {
@@ -28,7 +28,11 @@
     "prettier": "2.5.1"
   },
   "type": "module",
+  "bin": {
+    "zuodeploy": "./bin/zuodeploy.cjs"
+  },
   "dependencies": {
+    "commander": "^9.0.0",
     "koa": "^2.13.4",
     "koa-router": "^10.1.1",
     "koa-static": "^5.0.0"
