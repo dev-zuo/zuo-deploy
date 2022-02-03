@@ -1,0 +1,36 @@
+{
+  "name": "js-deploy",
+  "version": "0.1.0",
+  "description": "CI CD server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zuoxiaobai/js-deploy.git"
+  },
+  "keywords": [
+    "ci",
+    "cd",
+    "deploy"
+  ],
+  "author": "zuoxaiobai",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zuoxiaobai/js-deploy/issues"
+  },
+  "homepage": "https://github.com/zuoxiaobai/js-deploy#readme",
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "2.5.1"
+  },
+  "type": "module",
+  "dependencies": {
+    "koa": "^2.13.4",
+    "koa-router": "^10.1.1",
+    "koa-static": "^5.0.0"
+  }
+}
