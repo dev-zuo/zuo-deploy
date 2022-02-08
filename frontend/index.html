@@ -12,7 +12,9 @@
   <script src="//unpkg.com/vue@next"></script>
   <!-- 导入组件库 -->
   <script src="//unpkg.com/element-plus"></script>
+  
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.bootcss.com/socket.io/4.4.1/socket.io.js"></script>
 </head>
 
 <body>
@@ -21,7 +23,7 @@
 
     <div>
       <p>deployLog:</p>
-      <pre>{{deployLog}}</pre>
+      <div v-html="msgHtml"></div>
     </div>
   </div>
   <script>
@@ -29,11 +31,22 @@
       data() {
         return {
           counter: 0,
-          deployLog: '点击按钮进行部署'
+          deployLog: '点击按钮进行部署',
+          msgList: [],
+          msgHtml: ''
         }
+      },
+      mounted() {
+        this.socket = io() // 链接到 socket 服务器
+        this.socket.on('deploy-log', (msg) => {
+          msg = msg.replace(/\n/g, '<br>')
+          this.msgList.push(msg)
+          this.msgHtml = this.msgList.join('')
+        })
       },
       methods: {
         deploy() {
+          this.msgList = []
           this.deployLog = '后端部署中，请稍等...'
           axios.post('/deploy')
             .then((response) => {

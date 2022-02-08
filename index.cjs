@@ -1,11 +1,25 @@
 const Koa = require("koa");
 const KoaStatic = require("koa-static");
 const KoaRouter = require("koa-router");
-
 class ZuoDeploy {
+  constructor() {
+    this.io = "";
+    this.socketList = [];
+  }
+
   start() {
     const app = new Koa();
     const router = new KoaRouter();
+
+    // 开启 socket 服务
+    const server = require("http").Server(app.callback());
+    const io = require("socket.io")(server);
+    console.log("执行了最小");
+    io.on("connection", (socket) => {
+      this.io = io;
+      this.socketList.push(socket);
+      console.log("a user connected");
+    });
 
     router.post("/deploy", async (ctx) => {
       // 执行部署脚本
@@ -38,7 +52,7 @@ class ZuoDeploy {
 
     app.use(new KoaStatic(__dirname + "/frontend"));
     app.use(router.routes()).use(router.allowedMethods());
-    app.listen("7777", () => console.log("服务监听 7777 端口"));
+    server.listen("7777", () => console.log("服务监听 7777 端口"));
   }
 
   // 使用子进程执行命令
@@ -47,10 +61,11 @@ class ZuoDeploy {
     const child = spawn(cmd, args);
     let resp = "当前执行路径：" + process.cwd() + "\n";
     console.log(resp);
-    child.stdout.on("data", function (buffer) {
+    child.stdout.on("data", (buffer) => {
       let info = buffer.toString();
       resp += info;
       console.log(info);
+      this.io.emit("deploy-log", info);
       // log 较多时，怎么实时将消息通过接口返给前端，只能是 socket ？
       // 除了 socket 怎么将 log 数据一点点通过接口传给前端
     });
@@ -60,10 +75,11 @@ class ZuoDeploy {
 
     // shell 脚本执行错误信息也返回
     // let errorMsg = ""; // 错误信息 end、正常信息 end 可能有先后，统一成一个信息
-    child.stderr.on("data", function (buffer) {
+    child.stderr.on("data", (buffer) => {
       let info = buffer.toString();
       resp += info;
       console.log(info);
+      this.io.emit("deploy-log", info);
     });
     child.stderr.on("end", function () {
       callback(resp);
