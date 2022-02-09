@@ -12,18 +12,53 @@
   <script src="//unpkg.com/vue@next"></script>
   <!-- 导入组件库 -->
   <script src="//unpkg.com/element-plus"></script>
-  
+
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <script src="https://cdn.bootcss.com/socket.io/4.4.1/socket.io.js"></script>
+  <style>
+    .login-area {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+
+    .text-log-wrap {
+      background: rgba(0, 0, 0, 0.8);
+      color: rgb(255, 255, 255);
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 100px;
+    }
+
+    .text-log p {
+      margin: 5px 0;
+    }
+  </style>
 </head>
 
 <body>
-  <div id="app">
-    <el-button type="primary" @click="deploy">部署</el-button>
+  <div id="app" style="margin:0 20px;">
+    <div class="login-area">
+      <div v-if="!isLogin">
+        <el-input v-model="password" type="password" style="width: 200px;"></el-input>
+        &nbsp;
+        <el-button type="primary" @click="login">登录</el-button>
+      </div>
+      <div v-else>已登录</div>
+    </div>
 
     <div>
-      <p>deployLog:</p>
-      <div v-html="msgHtml"></div>
+      <el-button type="primary" @click="deploy">部署</el-button>
+      <div>
+        <p>部署日志:</p>
+        <div class="text-log-wrap">
+          <div class="text-log">
+            <p v-for="(text, index) in msgList" :key="text+index">{{text}}</p>
+          </div>
+          <div v-if="!msgList.length">请点击部署</div>
+        </div>
+      </div>
+
     </div>
   </div>
   <script>
@@ -33,18 +68,47 @@
           counter: 0,
           deployLog: '点击按钮进行部署',
           msgList: [],
-          msgHtml: ''
+          password: '',
+          isLogin: false
         }
       },
       mounted() {
         this.socket = io() // 链接到 socket 服务器
         this.socket.on('deploy-log', (msg) => {
-          msg = msg.replace(/\n/g, '<br>')
           this.msgList.push(msg)
-          this.msgHtml = this.msgList.join('')
         })
+        axios.get('/isLogin')
+          .then((response) => {
+            console.log(response.data);
+            let { code, msg, data } = response.data
+            if (data) {
+              this.isLogin = true
+            }
+          }).catch(function (error) {
+            console.log(error);
+          })
       },
       methods: {
+        login() {
+          if (!this.password) {
+            this.$message.warning('请输入密码')
+            return
+          }
+          axios.post('/login', { password: this.password })
+            .then((response) => {
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code === 0) {
+                this.isLogin = true
+              } else {
+                this.$message.error(msg)
+              }
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        },
         deploy() {
           this.msgList = []
           this.deployLog = '后端部署中，请稍等...'
@@ -52,16 +116,16 @@
             .then((response) => {
               // handle success
               console.log(response.data);
-              this.deployLog = response.data.msg
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+              }
+              console.log(msg)
             })
-            .catch(function (error) {
-              // handle error
-              console.log(error);
-              this.deployLog = error
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
             })
-            .then(function () {
-              // always executed
-            });
         }
       }
     }
