@@ -2,6 +2,7 @@
 # CHANGELOG
 
 ## 0.2.0
+- feat: 新增 socket 实时输出部署 log
 - feat: 启动命令增加端口、密码参数配置
 - feat: 引入session, 新增部署接口鉴权、前端登录功能 
 - feat: 对页面 UI 进行简单修改, 优化提示, 提高 log 展示性能 
