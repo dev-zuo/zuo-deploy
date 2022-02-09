@@ -7,7 +7,10 @@
 npm install zuo-deploy -g
 # 开启服务
 zuodeploy start
-# 再访问 127.0.0.1:7777 打开操作界面
+# 访问 127.0.0.1:7777 打开操作界面，密码 888888
+
+# 自定义服务端口、密码
+zuodeploy start --port 7976 --password sdfsdf
 ```
 ![docImages/deploy-add-sh.png](./docImages/deploy-add-sh.png)
 
@@ -29,12 +32,6 @@ zuoblog init --disable-dev-server
 echo "部署完成!"
 ```
 ![docImages/deploy-log.png](./docImages/deploy-log.png)
-
-针对 log 可能输出较慢的问题，在 console 里也有打出 log，看服务器控制台可以实时看 log。
-
-后续优化，使用 socket 实时将 log 信息传给前端
-
-![docImages/deploy-terminal-log.png](./docImages/deploy-terminal-log.png)
 ## 项目从 0 到 1 过程
 
 ### 基础结构
@@ -119,7 +116,7 @@ npm link 与 package.json 中的 bin 参考：[package.json - bin](https://docs.
 第一次执行要先 npm adduser，后续直接先切到 npm 官方源，再 npm login; npm publish
 ```bash
 npm config set registry=https://registry.npmjs.org
-npm adduser
+npm adduser # 非第一次可以不用
 输入 npm 账号密码完成
 npm login # 登陆 ，如果有 OTP, 邮箱会接收到验证码，输入即可
 # 登录成功后，短时间内会保存状态，可以直接 npm pubish
