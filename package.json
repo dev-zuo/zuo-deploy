@@ -1,6 +1,6 @@
 {
   "name": "zuo-deploy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "CI CD server",
   "main": "index.js",
   "scripts": {
