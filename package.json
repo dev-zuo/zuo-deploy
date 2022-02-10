@@ -1,6 +1,6 @@
 {
   "name": "zuo-deploy",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "CI CD server",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zuoxiaobai/js-deploy.git"
+    "url": "git+https://github.com/zuoxiaobai/zuo-deploy.git"
   },
   "keywords": [
     "ci",
@@ -18,9 +18,9 @@
   "author": "zuoxaiobai",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/zuoxiaobai/js-deploy/issues"
+    "url": "https://github.com/zuoxiaobai/zuo-deploy/issues"
   },
-  "homepage": "https://github.com/zuoxiaobai/js-deploy#readme",
+  "homepage": "https://github.com/zuoxiaobai/zuo-deploy#readme",
   "devDependencies": {
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
