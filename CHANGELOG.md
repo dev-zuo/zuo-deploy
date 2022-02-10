@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## 0.2.2
+- fix: npm 官网 github 链接更正
+- fix: socket.io cdn 链接在服务器上运行时异常，将 cdn 替换为官方 cdn
 ## 0.2.0
 - feat: 新增 socket 实时输出部署 log
 - feat: 启动命令增加端口、密码参数配置
