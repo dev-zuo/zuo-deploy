@@ -124,5 +124,10 @@ npm publish # 可能会提示名称已存在，换个名字，获取使用作用
 npm config set registry=https://registry.npm.taobao.org # 还原淘宝镜像
 ```
 
-### 
-
+### pm2 开启接口
+防止 terminal node xx.js 进程被杀掉，使用 pm2 像守护进程一样后台执行
+```js
+pm2 stop zuodeoploy
+pm2 start src/index.js -n 'zuodeoploy'
+```
+跨文件传参, 文件读写
