@@ -4,7 +4,7 @@
 ## 使用
 ```bash
 # 全局安装
-npm install zuo-deploy -g
+npm install zuo-deploy pm2 -g
 # 开启服务
 zuodeploy start
 # 访问 127.0.0.1:7777 打开操作界面，密码 888888
@@ -32,6 +32,10 @@ zuoblog init --disable-dev-server
 echo "部署完成!"
 ```
 ![docImages/deploy-log.png](./docImages/deploy-log.png)
+
+## 服务器 pm2 log 查看
+pm2 log
+
 ## 项目从 0 到 1 过程
 
 ### 基础结构

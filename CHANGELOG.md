@@ -1,6 +1,8 @@
 
 # CHANGELOG
 
+## 0.3.0
+- feat: 使用 pm2 改造服务，防止 terminal 中断后进程被杀掉
 ## 0.2.2
 - fix: npm 官网 github 链接更正
 - fix: socket.io cdn 链接在服务器上运行时异常，将 cdn 替换为官方 cdn
