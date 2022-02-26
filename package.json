@@ -1,6 +1,6 @@
 {
   "name": "zuo-deploy",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "CI CD server",
   "main": "index.js",
   "scripts": {
@@ -38,6 +38,7 @@
     "koa-session": "^6.2.0",
     "koa-static": "^5.0.0",
     "log4js": "^6.4.1",
+    "prompts": "^2.4.2",
     "socket.io": "^4.4.1"
   }
 }

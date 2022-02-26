@@ -1,17 +1,23 @@
 # zuo-deploy
 用 js 写一个 CI、CD 工具
 
+![version-v0.3.1](https://img.shields.io/badge/version-v0.3.1-yellow.svg) ![license-MIT](https://img.shields.io/badge/license-MIT-green.svg) 
+
+npm package
+
+[![NPM](https://nodei.co/npm/zuo-deploy.png)](https://npmjs.org/package/zuo-deploy)
 ## 使用
 ```bash
 # 全局安装
 npm install zuo-deploy pm2 -g
 # 开启服务
 zuodeploy start
-# 访问 127.0.0.1:7777 打开操作界面，密码 888888
+# ✔ 请指定部署服务监听端口： … 7777
+# ✔ 请设置登录密码（默认：888888） … ******
 
-# 自定义服务端口、密码
-zuodeploy start --port 7976 --password sdfsdf
+# 访问 127.0.0.1:7777 打开操作界面，密码 888888
 ```
+
 ![docImages/deploy-add-sh.png](./docImages/deploy-add-sh.png)
 
 点击部署，会执行当前目录下的 deploy-master.sh，
@@ -33,9 +39,12 @@ echo "部署完成!"
 ```
 ![docImages/deploy-log.png](./docImages/deploy-log.png)
 
-## 服务器 pm2 log 查看
+## 服务 log 查询
+zuodeploy start 会用 pm2 开启一个 zuodeploy 服务，再次执行 zuodeploy start 会删除原服务，再次开启新服务
+```bash
+# 查看 log
 pm2 log
-
+```
 ## 项目从 0 到 1 过程
 
 ### 基础结构
