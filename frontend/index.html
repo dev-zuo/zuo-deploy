@@ -23,11 +23,17 @@
     }
 
     .text-log-wrap {
+      font-size: 14px;
       background: rgba(0, 0, 0, 0.8);
       color: rgb(255, 255, 255);
       border-radius: 5px;
       padding: 20px;
       margin-bottom: 100px;
+    }
+
+    .text-log-wrap pre {
+      padding: 0;
+      margin: 0;
     }
 
     .text-log p {
@@ -52,10 +58,10 @@
       <div>
         <p>部署日志:</p>
         <div class="text-log-wrap">
-          <div class="text-log">
+          <pre v-if="msgList.length" class="text-log">
             <p v-for="(text, index) in msgList" :key="text+index">{{text}}</p>
-          </div>
-          <div v-if="!msgList.length">请点击部署</div>
+          </pre>
+          <div v-else>请点击部署</div>
         </div>
       </div>
 

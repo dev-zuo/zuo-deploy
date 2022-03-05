@@ -1,5 +1,5 @@
 # zuo-deploy
-用 js 写一个 CI、CD 工具
+用 js 写一个 CI、CD 工具，实现细节文档: [Vue + Node.js 从 0 到 1 实现自动化部署工具](http://www.zuo11.com/blog/2022/2/zuo_deploy_think.html)
 
 ![version-v0.3.1](https://img.shields.io/badge/version-v0.3.1-yellow.svg) ![license-MIT](https://img.shields.io/badge/license-MIT-green.svg) 
 
@@ -22,7 +22,7 @@ zuodeploy start
 
 点击部署，会执行当前目录下的 deploy-master.sh，
 
-需要自己在需要部署的项目里，创建一个 deploy-master.sh 脚本，如果没有会直接报错，如上图。
+需要自己在需要部署的项目里，创建一个 deploy-master.sh 脚本，并添加可执行权限(`chmod +x 文件名`)，如果没有会直接报错，如上图。
 
 ```shell
 # https://github.com/zuoxiaobai/zuo11.com 部署脚本示例
@@ -40,14 +40,35 @@ echo "部署完成!"
 ![docImages/deploy-log.png](./docImages/deploy-log.png)
 
 ## 服务 log 查询
-zuodeploy start 会用 pm2 开启一个 zuodeploy 服务，再次执行 zuodeploy start 会删除原服务，再次开启新服务
+zuodeploy start 会用 pm2 开启一个 zuodeploy 服务，再次执行 zuodeploy start 会删除原服务，再次开启新服务。**如果开启失败，重新运行一次命令即可**
 ```bash
 # 查看 log
 pm2 log
+pm2 log zuodeploy --lines 1000 # 指定行
 ```
-## 项目从 0 到 1 过程
 
-### 基础结构
+
+## 其他
+### 推荐部署脚本
+```bash
+echo "开始部署..."
+
+# 防止部署 log 中文乱码
+git config --global core.quotepath false 
+
+echo "git pull"
+git pull 
+
+# 查看最近一次提交 log，了解当前部署的是哪个版本
+echo "git log -1"
+git log -1 
+
+# 构建相关
+# 构建
+
+echo "部署完成!"
+```
+### eslint+prettier
 
 ```bash
 # 初始化 package.json
@@ -65,82 +86,13 @@ npm install eslint-plugin-prettier --save-dev # 将 prettier 以插件形式集�
 # 配置参考 https://github.com/prettier/eslint-plugin-prettier
 ```
 
-### koa 接口、静态服务
-```js
-import Koa from "koa";
-import KoaStatic from "koa-static";
-import KoaRouter from "koa-router";
-import path from "path";
-
-const app = new Koa();
-const router = new KoaRouter();
-
-router.post("/user", (ctx) => {
-  ctx.body = {
-    a: 1,
-  };
-});
-
-app.use(new KoaStatic(path.resolve() + "/frontend"));
-app.use(router.routes()).use(router.allowedMethods());
-
-app.listen("7777", () => console.log("服务监听 7777 端口"));
-```
-
-### jsdeploy 命令行工具实现
-
->  注意包名先在 npm 官网查看是否有重复的
-
-预期 npm install zuo-deploy -g；zuodeploy start 开启服务
-
-方法：
-```js
-// package.json
-"bin": {
-  "zuodeploy": "./bin/zuodeploy"
-},
-```
-```js
-// 新建 bin/zuodeploy，点击 vscode 底部 LF/CRLF 右侧的 语言，选择 js
-#!/usr/bin/env node
-
-const program = require("commander");
-
-program
-  .version(require("../package.json").version)
-  .command("start", "Start jsdeploy server, listening on 7777");
-
-program.parse(process.argv);
-
-```
-package.json 中设置了 type 为 module 且 bin/xx 没有加 js 后缀时会有问题，提示 `TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension "" for /Users/zuo/js-deploy/bin/jsdeploy`，参考 https://stackoverflow.com/questions/61536473/getting-error-typeerror-err-unknown-file-extension-unknown-file-extension
-
-node 默认的 commonjs 可以省略后缀，如果是 type = module 使用 ES Modules 需要有后缀，加 js 或 cjs（如果需要用到 __dirname 或 require 就用这个）
-
-sudo npm link 如果失败，换个 bin 命令名称 或 rm /usr/local/bin/zuodeploy
-
-npm link 与 package.json 中的 bin 参考：[package.json - bin](https://docs.npmjs.com/cli/v8/configuring-npm/package-json#bin)，本质上是创建一个 symbol link，本机任何地方执行 bin 指定的命令会链接到指定的文件执行。是本地调试 npm 命令行工具必备的方法
-
-新增 zuodeploy start 时执行方法 bin/zuodeploy-start.js
-
-执行时开启 server 服务
-
-### 上传 npm 包
-第一次执行要先 npm adduser，后续直接先切到 npm 官方源，再 npm login; npm publish
-```bash
-npm config set registry=https://registry.npmjs.org
-npm adduser # 非第一次可以不用
-输入 npm 账号密码完成
-npm login # 登陆 ，如果有 OTP, 邮箱会接收到验证码，输入即可
-# 登录成功后，短时间内会保存状态，可以直接 npm pubish
-npm publish # 可能会提示名称已存在，换个名字，获取使用作用域包（@xxx/xxx）
-npm config set registry=https://registry.npm.taobao.org # 还原淘宝镜像
-```
-
-### pm2 开启接口
+### pm2 相关
 防止 terminal node xx.js 进程被杀掉，使用 pm2 像守护进程一样后台执行
 ```js
 pm2 stop zuodeoploy
 pm2 start src/index.js -n 'zuodeoploy'
 ```
 跨文件传参, 文件读写
+
+## License
+MIT
