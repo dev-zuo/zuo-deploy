@@ -1,5 +1,5 @@
 # zuo-deploy
-用 js 写一个 CI、CD 工具，实现细节文档: [Vue + Node.js 从 0 到 1 实现自动化部署工具](http://www.zuo11.com/blog/2022/2/zuo_deploy_think.html)
+用 js 写一个 CI、CD 工具，实现细节文档: [Vue + Node.js 从 0 到 1 实现自动化部署工具](https://juejin.cn/post/7070921715492061214)
 
 ![version-v0.3.1](https://img.shields.io/badge/version-v0.3.1-yellow.svg) ![license-MIT](https://img.shields.io/badge/license-MIT-green.svg) 
 
