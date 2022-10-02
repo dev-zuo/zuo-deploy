@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>zuo-deploy</title>
+  <!-- 导入样式 -->
+  <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
+  <!-- 导入 Vue 3 -->
+  <script src="//unpkg.com/vue@next"></script>
+  <!-- 导入组件库 -->
+  <script src="//unpkg.com/element-plus"></script>
+
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <style>
+    .login-area {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+
+    .text-log-wrap {
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.8);
+      color: rgb(255, 255, 255);
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 100px;
+    }
+
+    .text-log-wrap pre {
+      padding: 0;
+      margin: 0;
+    }
+
+    .text-log p {
+      margin: 5px 0;
+      white-space: normal;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" style="margin:0 20px;">
+    <div class="login-area">
+      <div v-if="!isLogin">
+        <el-input v-model="password" type="password" style="width: 200px;"></el-input>
+        &nbsp;
+        <el-button type="primary" @click="login">登录</el-button>
+      </div>
+      <div v-else>已登录</div>
+    </div>
+
+    <div>
+      <el-tabs v-model="curTab" @tab-change="tabChange">
+        <el-tab-pane label="运行 shell 脚本" name="SHELL_RUN"></el-tab-pane>
+        <el-tab-pane label="shell文件管理" name="SHELL_ADMIN"></el-tab-pane>
+      </el-tabs>
+    </div>
+    <!-- @start shell_run -->
+    <div v-show="curTab === 'SHELL_RUN'">
+      <div style="margin: 20px 0; width: 500px;">
+        <el-input v-model="shellText" type="textarea" placeholder="请输入shell脚本" :rows="5"></el-input>
+        <el-button type="plain" @click="runShell" style="margin-top: 15px;;">运行</el-button>
+      </div>
+      <div>
+        <div style="display: flex;align-items: center;justify-content: space-between;">
+          <p>日志:</p>
+          <el-button type="plain" size="small" @click="msgList.splice(0, msgList.length)">清除日志</el-button>
+        </div>
+        <div class="text-log-wrap">
+          <pre v-if="msgList.length" class="text-log">
+            <pre v-for="(text, index) in msgList" :key="text+index">{{text}}</pre>
+          </pre>
+          <div v-else></div>
+        </div>
+      </div>
+    </div>
+    <!-- @end shell_run -->
+    <!-- @start shell_admin -->
+    <div v-show="curTab === 'SHELL_ADMIN'">
+      <div>
+        <el-button type="plain" @click="runCurShell" style="margin-top: 15px;" v-if="shellList.length">运行当前脚本 {{shellList[curShellTabIndex].name}}</el-button>
+        <el-button type="plain" @click="addShell" style="margin-top: 15px;">新增脚本</el-button>
+      </div>
+      <div>
+        <el-tabs v-model="curShellTabIndex">
+          <el-tab-pane v-for="(item, index) in shellList" :key="item.name" :label="`${item.name}`" :name="index"></el-tab-pane>
+        </el-tabs>
+      </div>
+      <div v-if="shellList.length">
+        <pre>{{shellList[curShellTabIndex].content}}</pre>
+      </div>
+      <div v-else>
+        <el-button @click="addShell">新增</el-button>
+      </div>
+      <div v-if="shellList.length">
+        <div style="display: flex;align-items: center;justify-content: space-between;">
+          <p>日志:</p>
+          <el-button type="plain" size="small" @click="shellMsgObj[shellList[curShellTabIndex].name] = []">清除日志</el-button>
+        </div>
+        <div class="text-log-wrap">
+          <pre v-if="shellMsgObj[shellList[curShellTabIndex].name]?.length" class="text-log">
+            <pre v-for="(text, index) in shellMsgObj[shellList[curShellTabIndex].name]" :key="text+index">{{text}}</pre>
+          </pre>
+          <div v-else></div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <!-- @end shell_admin -->
+  </div>
+  <script>
+    const app = {
+      data() {
+        return {
+          counter: 0,
+          deployLog: '点击按钮进行部署',
+          msgList: [],
+          password: '',
+          isLogin: false,
+          shellText: '', // shell 脚本内容
+          curTab: 'SHELL_RUN',
+          shellList: [],
+          curShellTabIndex: 0,
+          shellMsgObj: {},
+          curShellSocketInit: false
+        }
+      },
+      mounted() {
+        this.socket = io() // 链接到 socket 服务器
+        this.socket.on('runShell', (msg) => {
+          this.msgList.push(msg)
+        })
+        axios.get('/isLogin')
+          .then((response) => {
+            console.log(response.data);
+            let { code, msg, data } = response.data
+            if (data) {
+              this.isLogin = true
+            }
+          }).catch(function (error) {
+            console.log(error);
+          })
+      },
+      methods: {
+        addShell() {
+          this.$message.success('ok')
+        },
+        saveShell() {
+          console.log(this.shellText)
+        },
+        runShell() {
+          // 将 shell 内容存储到一个临时文件 temp.sh，用 node 执行该 shell
+          axios.post('/runShell', { shellText: this.shellText })
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+              }
+              console.log(msg)
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        },
+        runCurShell() {
+          // 将 shell 内容存储到一个临时文件 temp.sh，用 node 执行该 shell
+          axios.post('/runCurShell', { name: this.shellList[this.curShellTabIndex].name })
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+              }
+              console.log(msg)
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        },
+        tabChange(name) {
+          console.log(this.curTab, name)
+          if (name === 'SHELL_ADMIN') {
+            this.getShellFileList()
+          }
+        },
+        getShellFileList() {
+          axios.get('/shell/get')
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg, data } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              this.shellList = data
+              this.curShellTabIndex = 0
+              // 为每一个文件，新增一个 socket log 通道
+              if (this.curShellSocketInit) {
+                return
+              }
+              this.shellList.forEach(item => {
+                this.socket.on('shell-log-' + item.name, (msg) => {
+                  !this.shellMsgObj[item.name] && (this.shellMsgObj[item.name] = [])
+                  this.shellMsgObj[item.name].push(msg)
+                })
+              })
+              this.curShellSocketInit = true
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        },
+        login() {
+          if (!this.password) {
+            this.$message.warning('请输入密码')
+            return
+          }
+          axios.post('/login', { password: this.password })
+            .then((response) => {
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code === 0) {
+                this.isLogin = true
+              } else {
+                this.$message.error(msg)
+              }
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        },
+        deploy() {
+          this.msgList = []
+          this.deployLog = '后端部署中，请稍等...'
+          axios.post('/deploy')
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+              }
+              console.log(msg)
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        }
+      }
+    }
+
+    Vue.createApp(app).use(ElementPlus).mount('#app')
+  </script>
+</body>
+
+</html>

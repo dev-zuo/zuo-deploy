@@ -91,7 +91,147 @@ router.post("/deploy", async (ctx) => {
           function (text) {
             resolve(text);
           },
-          socketIo
+          socketIo,
+          "deploy-log"
+        );
+      } catch (e) {
+        logger.info(e);
+        reject(e);
+      }
+    });
+  };
+
+  try {
+    let res = await execFunc();
+    ctx.body = {
+      code: 0,
+      msg: res,
+    };
+  } catch (e) {
+    ctx.body = {
+      code: -1,
+      msg: e.message,
+    };
+  }
+});
+
+router.post("/runShell", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+
+  let { shellText, shellName = "temp.sh" } = ctx.request.body;
+  const shellFilePath = process.cwd() + "/" + shellName;
+  console.log("shellFilePath", shellFilePath);
+  try {
+    fs.writeFileSync(shellFilePath, shellText);
+  } catch (e) {
+    console.log(e);
+  }
+
+  // // 执行部署脚本
+  // // koa 注意异步 404 的问题
+  let execFunc = () => {
+    return new Promise((resolve, reject) => {
+      try {
+        runCmd(
+          "sh",
+          [shellFilePath],
+          function (text) {
+            resolve(text);
+          },
+          socketIo,
+          "runShell"
+        );
+      } catch (e) {
+        logger.info(e);
+        reject(e);
+      }
+    });
+  };
+
+  try {
+    let res = await execFunc();
+    ctx.body = {
+      code: 0,
+      msg: res,
+    };
+  } catch (e) {
+    ctx.body = {
+      code: -1,
+      msg: e.message,
+    };
+  }
+});
+
+router.get("/shell/get", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+
+  const files = fs.readdirSync(`${process.cwd()}`);
+  let result = [];
+  // files [ 'args.json', 'temp.sh', 'test.sh' ]
+  files
+    .filter((item) => !["args.json", "temp.sh"].includes(item))
+    .forEach((filePath) => {
+      let info = { name: filePath, content: "", desc: "" };
+      const content = fs
+        .readFileSync(`${process.cwd()}/${filePath}`)
+        .toString();
+      info.content = content;
+      result.push(info);
+    });
+
+  // [
+  //   { name: "1.sh", content: "ls\npwd\n", desc: "定时任务" },
+  //   {
+  //     name: "2.sh",
+  //     content: "git pull;\n npm i && npm run build\n",
+  //     desc: "项目部署",
+  //   },
+  // ],
+  ctx.body = {
+    code: 0,
+    data: result,
+    msg: "成功",
+  };
+});
+
+router.post("/runCurShell", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+
+  let { name } = ctx.request.body;
+  const shellFilePath = process.cwd() + "/" + name;
+  console.log("cur shellFilePath", shellFilePath);
+
+  // // 执行部署脚本
+  // // koa 注意异步 404 的问题
+  let execFunc = () => {
+    return new Promise((resolve, reject) => {
+      try {
+        runCmd(
+          "sh",
+          [shellFilePath],
+          function (text) {
+            resolve(text);
+          },
+          socketIo,
+          "shell-log-" + name
         );
       } catch (e) {
         logger.info(e);
