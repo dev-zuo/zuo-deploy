@@ -192,9 +192,6 @@
           }
         }
       },
-      beforeMount() {
-        this.getShellFileList()
-      },
       mounted() {
         this.socket = io() // 链接到 socket 服务器
         this.socket.on('runShell', (msg) => {
@@ -206,6 +203,7 @@
             let { code, msg, data } = response.data
             if (data) {
               this.isLogin = true
+              this.getShellFileList()
             }
           }).catch(function (error) {
             console.log(error);
@@ -381,6 +379,7 @@
               let { code, msg } = response.data
               if (code === 0) {
                 this.isLogin = true
+                this.getShellFileList()
               } else {
                 this.$message.error(msg)
               }

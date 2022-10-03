@@ -180,16 +180,30 @@ router.get("/shell/get", async (ctx) => {
   const files = fs.readdirSync(`${process.cwd()}`);
   let result = [];
   // files [ 'args.json', 'temp.sh', 'test.sh' ]
-  files
-    .filter((item) => !["args.json", "temp.sh"].includes(item))
-    .forEach((filePath) => {
-      let info = { name: filePath, content: "", desc: "" };
+  let filesFilter = files.filter((item) => {
+    if (["args.json", "temp.sh"].includes(item)) {
+      return false;
+    }
+    if (item.startsWith(".")) {
+      return false;
+    }
+    return true;
+  });
+  console.log(filesFilter);
+
+  filesFilter.forEach((filePath) => {
+    console.log(`'${filePath}'`);
+    let info = { name: filePath, content: "", desc: "" };
+    try {
       const content = fs
         .readFileSync(`${process.cwd()}/${filePath}`)
         .toString();
       info.content = content;
       result.push(info);
-    });
+    } catch (e) {
+      console.log("非文件", e.message);
+    }
+  });
 
   // [
   //   { name: "1.sh", content: "ls\npwd\n", desc: "定时任务" },
