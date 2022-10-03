@@ -254,6 +254,100 @@ router.post("/runCurShell", async (ctx) => {
   }
 });
 
+router.post("/saveFile", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+  let { name, content, curPath } = ctx.request.body;
+  console.log(name, content, curPath);
+  !curPath && (curPath = ".");
+  let prePath = curPath.startsWith("/")
+    ? curPath
+    : path.join(process.cwd(), curPath);
+
+  const filePath = prePath + (prePath.endsWith("/") ? "" : "/") + name;
+  console.log("filePath", filePath, prePath);
+  try {
+    fs.writeFileSync(filePath, content);
+    ctx.body = {
+      code: 0,
+      msg: "成功",
+    };
+  } catch (e) {
+    console.log(e);
+    ctx.body = {
+      code: -1,
+      msg: `文件 '${filePath}' 创建失败，` + e.message,
+    };
+  }
+});
+
+router.post("/editFile", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+  let { name, content, curPath } = ctx.request.body;
+  // console.log(name, content, curPath);
+  !curPath && (curPath = ".");
+  let prePath = curPath.startsWith("/")
+    ? curPath
+    : path.join(process.cwd(), curPath);
+  const filePath = prePath + (prePath.endsWith("/") ? "" : "/") + name;
+  // console.log("filePath", filePath, prePath);
+  try {
+    fs.writeFileSync(filePath, content);
+    ctx.body = {
+      code: 0,
+      msg: "成功",
+    };
+  } catch (e) {
+    console.log(e);
+    ctx.body = {
+      code: -1,
+      msg: `文件 '${filePath}' 修改失败，` + e.message,
+    };
+  }
+});
+
+router.post("/deleteFile", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+  let { name, curPath } = ctx.request.body;
+  console.log(name, curPath);
+  !curPath && (curPath = ".");
+  let prePath = curPath.startsWith("/")
+    ? curPath
+    : path.join(process.cwd(), curPath);
+  const filePath = prePath + (prePath.endsWith("/") ? "" : "/") + name;
+  // console.log("filePath", filePath, prePath);
+  try {
+    fs.rmSync(filePath);
+    ctx.body = {
+      code: 0,
+      msg: "成功",
+    };
+  } catch (e) {
+    console.log(e);
+    ctx.body = {
+      code: -1,
+      msg: `文件 '${filePath}' 删除失败，` + e.message,
+    };
+  }
+});
+
 app.use(new KoaStatic(path.resolve(__dirname, "../frontend")));
 app.use(router.routes()).use(router.allowedMethods());
 server.listen(args.port, () => logger.info(`服务监听 ${args.port} 端口`));

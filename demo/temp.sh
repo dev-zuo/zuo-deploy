@@ -1,1 +1,1 @@
-ls
+echo 'ls' > projb.sh

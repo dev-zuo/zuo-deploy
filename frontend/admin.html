@@ -83,24 +83,33 @@
     <!-- @start shell_admin -->
     <div v-show="curTab === 'SHELL_ADMIN'">
       <div>
-        <el-button type="plain" @click="runCurShell" style="margin-top: 15px;" v-if="shellList.length">运行当前脚本 {{shellList[curShellTabIndex].name}}</el-button>
-        <el-button type="plain" @click="addShell" style="margin-top: 15px;">新增脚本</el-button>
+        <el-button type="plain" @click="addFile" style="margin-top: 15px;">新增脚本</el-button>
       </div>
       <div>
         <el-tabs v-model="curShellTabIndex">
-          <el-tab-pane v-for="(item, index) in shellList" :key="item.name" :label="`${item.name}`" :name="index"></el-tab-pane>
+          <el-tab-pane v-for="(item, index) in shellList" :key="item.name" :label="`${item.name}`" :name="index">
+          </el-tab-pane>
         </el-tabs>
       </div>
       <div v-if="shellList.length">
+        <div>
+          <el-button type="plain" @click="runCurShell" style="margin-top: 15px;" v-if="shellList.length">运行当前脚本
+            {{shellList[curShellTabIndex].name}}</el-button>
+          <el-button type="plain" @click="editFile" style="margin-top: 15px;" v-if="shellList.length">修改
+            {{shellList[curShellTabIndex].name}}</el-button>
+          <el-button type="plain" @click="deleteFile" style="margin-top: 15px;" v-if="shellList.length">删除
+            {{shellList[curShellTabIndex].name}}</el-button>
+        </div>
         <pre>{{shellList[curShellTabIndex].content}}</pre>
       </div>
       <div v-else>
-        <el-button @click="addShell">新增</el-button>
+        <el-button @click="addFile">新增</el-button>
       </div>
       <div v-if="shellList.length">
         <div style="display: flex;align-items: center;justify-content: space-between;">
           <p>日志:</p>
-          <el-button type="plain" size="small" @click="shellMsgObj[shellList[curShellTabIndex].name] = []">清除日志</el-button>
+          <el-button type="plain" size="small" @click="shellMsgObj[shellList[curShellTabIndex].name] = []">清除日志
+          </el-button>
         </div>
         <div class="text-log-wrap">
           <pre v-if="shellMsgObj[shellList[curShellTabIndex].name]?.length" class="text-log">
@@ -110,8 +119,54 @@
         </div>
       </div>
     </div>
-    </div>
     <!-- @end shell_admin -->
+    <!-- @start 新增 dialog -->
+    <el-dialog v-if="addDialogVisible" v-model="addDialogVisible" title="新增脚本" width="600px">
+      <el-form :model="form" :label-width="100">
+        <el-form-item label="文件路径">
+          <el-input v-model="form.curPath" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="文件名">
+          <el-input v-model="form.name" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="文件内容">
+          <el-input v-model="form.content" type="textarea" :rows="10" autocomplete="off" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="addDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveFile">
+            确认
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+    <!-- @end 新增 dialog-->
+
+    <!-- @start 修改 dialog -->
+    <el-dialog v-if="editDialogVisible" v-model="editDialogVisible" title="修改脚本" width="600px">
+      <el-form :model="form" :label-width="100">
+        <el-form-item label="文件路径">
+          <el-input v-model="form.curPath" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="文件名">
+          <el-input v-model="form.name" disabled autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="文件内容">
+          <el-input v-model="form.content" type="textarea" :rows="10" autocomplete="off" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveFile('edit')">
+            确认
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+    <!-- @end 修改 dialog-->
   </div>
   <script>
     const app = {
@@ -123,12 +178,22 @@
           password: '',
           isLogin: false,
           shellText: '', // shell 脚本内容
-          curTab: 'SHELL_RUN',
+          curTab: 'SHELL_RUN', // SHELL_ADMIN,SHELL_RUN
           shellList: [],
           curShellTabIndex: 0,
           shellMsgObj: {},
-          curShellSocketInit: false
+          curShellSocketInit: false,
+          addDialogVisible: false,
+          editDialogVisible: false,
+          form: {
+            name: '',
+            content: '',
+            curPath: ''
+          }
         }
+      },
+      beforeMount() {
+        this.getShellFileList()
       },
       mounted() {
         this.socket = io() // 链接到 socket 服务器
@@ -147,11 +212,97 @@
           })
       },
       methods: {
-        addShell() {
-          this.$message.success('ok')
+        addFile() {
+          this.addDialogVisible = true
         },
-        saveShell() {
-          console.log(this.shellText)
+        async deleteFile() {
+          try {
+            await this.$confirm(
+              '确定要删除吗？',
+              '提示',
+              {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning',
+              }
+            )
+          } catch (e) {
+            return
+          }
+          axios.post('/deleteFile', { name: this.shellList[this.curShellTabIndex].name })
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              this.getShellFileList()
+            })
+            .catch((err) => {
+              console.log(err);
+              this.$message.error(err?.message)
+            })
+        },
+        editFile() {
+          this.editDialogVisible = true
+          let { name, content } = this.shellList[this.curShellTabIndex]
+          Object.assign(this.form, {
+            name,
+            content
+          })
+        },
+        editFileSave() {
+          axios.post('/editFile', this.form)
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              this.editDialogVisible = false
+              this.getShellFileList()
+            })
+            .catch((err) => {
+              console.log(err);
+              this.$message.error(err?.message)
+            })
+        },
+        saveFile(opt) {
+          console.log(this.form)
+          let { name, content } = this.form
+          if (!name || !content) {
+            this.$message.warning('请输入名称、内容')
+            return
+          }
+          if (opt === 'edit') {
+            this.editFileSave()
+            return
+          }
+          axios.post('/saveFile', this.form)
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              this.addDialogVisible = false
+              this.getShellFileList()
+              name.endsWith('.sh') && this.socket.on('shell-log-' + name, (msg) => {
+                !this.shellMsgObj[name] && (this.shellMsgObj[name] = [])
+                this.shellMsgObj[name].push(msg)
+              })
+              console.log(msg)
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
         },
         runShell() {
           // 将 shell 内容存储到一个临时文件 temp.sh，用 node 执行该 shell
@@ -189,9 +340,6 @@
         },
         tabChange(name) {
           console.log(this.curTab, name)
-          if (name === 'SHELL_ADMIN') {
-            this.getShellFileList()
-          }
         },
         getShellFileList() {
           axios.get('/shell/get')
