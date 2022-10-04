@@ -40,6 +40,13 @@
       margin: 5px 0;
       white-space: normal;
     }
+
+    .nginx-conf-main {
+      padding: 0 20px;
+      border-radius: 8px;
+      color: white;
+      background: #333;
+    }
   </style>
 </head>
 
@@ -58,6 +65,7 @@
       <el-tabs v-model="curTab" @tab-change="tabChange">
         <el-tab-pane label="运行 shell 脚本" name="SHELL_RUN"></el-tab-pane>
         <el-tab-pane label="shell文件管理" name="SHELL_ADMIN"></el-tab-pane>
+        <el-tab-pane label="nginx配置管理" name="NGINX_ADMIN"></el-tab-pane>
       </el-tabs>
     </div>
     <!-- @start shell_run -->
@@ -103,7 +111,7 @@
         <pre>{{shellList[curShellTabIndex].content}}</pre>
       </div>
       <div v-else>
-        <el-button @click="addFile">新增</el-button>
+        暂无shell脚本文件
       </div>
       <div v-if="shellList.length">
         <div style="display: flex;align-items: center;justify-content: space-between;">
@@ -120,6 +128,81 @@
       </div>
     </div>
     <!-- @end shell_admin -->
+    <!-- @start nginx_admin -->
+    <div v-show="curTab === 'NGINX_ADMIN'" style="position: relative;">
+      <div style="position: absolute;top:10px;right:10px;">
+        <el-button type="plain" @click="nginxOpt('start')">启动nginx</el-button>
+        <el-button type="plain" @click="nginxOpt('reload')">重启nginx</el-button>
+        <el-button type="plain" @click="nginxOpt('stop')">停止nginx</el-button>
+      </div>
+      <div>
+        服务器系统：
+        <!-- <div> ubuntu 系统默认安装目录 /etc/nginx/nginx.conf </div>
+        <div> macOs 系统默认安装目录 /usr/local/etc/nginx.conf </div> -->
+        <el-radio-group v-model="curNginxSysIndex" class="ml-4" @change="curNginxSysChange">
+          <el-radio v-for="(item, index) in NGINX_PATH_LIST" :key="item.key" :label="index" size="large">
+            <span :title="item.desc">{{item.key}}</span>
+          </el-radio>
+        </el-radio-group>
+      </div>
+      <div>nginx默认配置目录:{{NGINX_PATH_LIST[curNginxSysIndex].path}}</div>
+      <div>nginx默认项目目录:{{NGINX_PATH_LIST[curNginxSysIndex].defaultProjectPath}}</div>
+      <!-- <div>推荐多项目配置文件目录: /etc/nginx/sites-available/* </div> -->
+      <el-tabs v-model="curNginxTab">
+        <el-tab-pane label="主配置" name="NGINX_ADMIN_MAIN"></el-tab-pane>
+        <el-tab-pane label="多项目独立nginx配置文件管理" name="NGINX_ADMIN_MULTIPLE"></el-tab-pane>
+        <el-tab-pane label="https证书管理" name="NGINX_ADMIN_TLS"></el-tab-pane>
+      </el-tabs>
+      curNginxTab: {{curNginxTab}}
+      <!-- @start nginx admin - 主配置-->
+      <div v-show="curNginxTab === 'NGINX_ADMIN_MAIN'">
+        <div style="display:flex;align-items: center;margin-top:15px;">
+          <el-button type="plain" @click="getNginxConfig">加载nginx配置文件</el-button>
+          <span style="margin-left: 15px;">{{NGINX_PATH_LIST[curNginxSysIndex].path + '/nginx.conf'}}</span>
+        </div>
+        <div class="nginx-conf-main" v-if="curNginxConfigContent" style="position: relative">
+          <div style="position: absolute;top:10px;right:10px;">
+            <el-button type="plain" @click="editNginxFile">修改</el-button>
+            <el-button type="plain" @click="delNginxFile" disabled>删除</el-button>
+          </div>
+          <pre>{{curNginxConfigContent}}</pre>
+        </div>
+      </div>
+      <!-- @end nginx admin - 主配置-->
+      <!-- @start nginx admin - 多项目独立nginx配置文件管理 -->
+      <div v-show="curNginxTab === 'NGINX_ADMIN_MULTIPLE'">
+        <div style="display:flex;align-items: center;margin-top:15px;">
+          <el-button type="plain" @click="getMultipleNginxConfig">加载当前目录nginx配置文件</el-button>
+          <span style="margin-left: 15px;">当前目录：</span>
+          <el-input v-model="nginxMultiplePath" style="width: 300px;" />
+        </div>
+        <div>
+          <el-button type="plain" @click="addFile" style="margin-top: 15px;">新增nginx配置文件</el-button>
+        </div>
+        <!---tabs-->
+        <div>
+          <el-tabs v-model="curNginxFileIndex">
+            <el-tab-pane v-for="(item, index) in nginxFileList" :key="item.name" :label="`${item.name}`" :name="index">
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+        <div v-if="nginxFileList.length">
+          <div class="nginx-conf-main" v-if="nginxFileList[curNginxFileIndex].content" style="position: relative">
+            <div style="position: absolute;top:10px;right:10px;">
+              <el-button type="plain" @click="editNginxFile">修改</el-button>
+              <el-button type="plain" @click="delNginxFile">删除</el-button>
+            </div>
+            <pre>{{nginxFileList[curNginxFileIndex].content}}</pre>
+          </div>
+        </div>
+        <div v-else>
+          暂无nginx配置文件
+        </div>
+        <!-- nginxFileList -->
+      </div>
+      <!-- @end nginx admin - 主配置-->
+    </div>
+    <!-- @end nginx_admin -->
     <!-- @start 新增 dialog -->
     <el-dialog v-if="addDialogVisible" v-model="addDialogVisible" title="新增脚本" width="600px">
       <el-form :model="form" :label-width="100">
@@ -145,22 +228,23 @@
     <!-- @end 新增 dialog-->
 
     <!-- @start 修改 dialog -->
-    <el-dialog v-if="editDialogVisible" v-model="editDialogVisible" title="修改脚本" width="600px">
+    <el-dialog v-if="editDialogVisible" v-model="editDialogVisible" title="修改文件" style="width: 90%;
+    max-width: 1280px;">
       <el-form :model="form" :label-width="100">
         <el-form-item label="文件路径">
-          <el-input v-model="form.curPath" autocomplete="off" />
+          <el-input v-model="form.curPath" disabled autocomplete="off" />
         </el-form-item>
         <el-form-item label="文件名">
           <el-input v-model="form.name" disabled autocomplete="off" />
         </el-form-item>
         <el-form-item label="文件内容">
-          <el-input v-model="form.content" type="textarea" :rows="10" autocomplete="off" />
+          <el-input v-model="form.content" type="textarea" :rows="15" autocomplete="off" />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveFile('edit')">
+          <el-button type="primary" @click="editFileSaveWrap">
             确认
           </el-button>
         </span>
@@ -189,7 +273,18 @@
             name: '',
             content: '',
             curPath: ''
-          }
+          },
+          curNginxSysIndex: 0,
+          NGINX_PATH_LIST: [
+            { key: 'ubuntu', path: '/etc/nginx', defaultProjectPath: '/var/www/html/', multiplePath: '/etc/nginx/sites-enabled/', desc: 'ubuntu系统ng默认目录' },
+            { key: 'mac', path: '/usr/local/etc/nginx', defaultProjectPath: '/usr/local/var/www/', multiplePath: '/usr/local/etc/nginx/', desc: 'mac系统ng默认目录' },
+            { key: '自定义', path: 'todo', desc: '手动指定目录' }
+          ],
+          curNginxConfigContent: '',
+          curNginxTab: 'NGINX_ADMIN_MAIN',
+          nginxMultiplePath: '/etc/nginx/sites-enabled/', // ubuntu
+          nginxFileList: [],
+          curNginxFileIndex: 0
         }
       },
       mounted() {
@@ -204,14 +299,70 @@
             if (data) {
               this.isLogin = true
               this.getShellFileList()
+              // this.getNginxConfig()
             }
           }).catch(function (error) {
             console.log(error);
           })
       },
       methods: {
+        curNginxSysChange(index) {
+          this.nginxMultiplePath = this.NGINX_PATH_LIST[index].multiplePath
+        },
+        nginxOpt(opt) {
+          let cmdMap = {
+            'start': 'nginx',
+            'reload': 'nginx -s reload',
+            'stop': 'nginx -s stop'
+          }
+          this.curTab = 'SHELL_RUN'
+          this.shellText = cmdMap[opt]
+          this.runShell()
+        },
+        getNginxConfig() {
+          let curPath = this.NGINX_PATH_LIST[this.curNginxSysIndex].path
+          axios.get('/nginx/get', { params: { curPath } })
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg, data } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              // this.getShellFileList()
+              this.curNginxConfigContent = data
+            })
+            .catch((err) => {
+              console.log(err);
+              this.$message.error(err?.message)
+            })
+        },
+        getMultipleNginxConfig() {
+          axios.get('/nginx/multipleGet', { params: { curPath: this.nginxMultiplePath } })
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg, data } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              this.nginxFileList = data
+              this.curNginxFileIndex = 0
+            })
+            .catch(function (err) {
+              console.log(err);
+              this.$message.error(err.message)
+            })
+        },
         addFile() {
           this.addDialogVisible = true
+          Object.assign(this.form, {
+            name: '',
+            content: '',
+            curPath: ''
+          })
         },
         async deleteFile() {
           try {
@@ -251,7 +402,19 @@
             content
           })
         },
-        editFileSave() {
+        editNginxFile() {
+          this.editDialogVisible = true
+          // let { name, content } = this.shellList[this.curShellTabIndex]
+          Object.assign(this.form, {
+            curPath: this.NGINX_PATH_LIST[this.curNginxSysIndex].path,
+            name: 'nginx.conf',
+            content: this.curNginxConfigContent
+          })
+        },
+        delNginxFile() {
+
+        },
+        editFileSave(cb) {
           axios.post('/editFile', this.form)
             .then((response) => {
               // handle success
@@ -262,22 +425,32 @@
                 return
               }
               this.editDialogVisible = false
-              this.getShellFileList()
+              cb && cb()
             })
             .catch((err) => {
               console.log(err);
               this.$message.error(err?.message)
             })
         },
-        saveFile(opt) {
+        editFileSaveWrap(type = 'shell') {
+          if (this.curTab === 'NGINX_ADMIN') {
+            type = 'nginx'
+          }
+          let successCallbackMap = {
+            'shell': () => {
+              this.getShellFileList()
+            },
+            "nginx": () => {
+              this.getNginxConfig()
+            }
+          }
+          this.editFileSave(successCallbackMap[type])
+        },
+        saveFile() {
           console.log(this.form)
           let { name, content } = this.form
           if (!name || !content) {
             this.$message.warning('请输入名称、内容')
-            return
-          }
-          if (opt === 'edit') {
-            this.editFileSave()
             return
           }
           axios.post('/saveFile', this.form)
@@ -380,6 +553,7 @@
               if (code === 0) {
                 this.isLogin = true
                 this.getShellFileList()
+                // this.getNginxConfig()
               } else {
                 this.$message.error(msg)
               }

@@ -362,6 +362,85 @@ router.post("/deleteFile", async (ctx) => {
   }
 });
 
+router.get("/nginx/get", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+  let { curPath } = ctx.query;
+  console.log(">>", curPath);
+
+  try {
+    const content = fs.readFileSync(curPath + "/nginx.conf").toString();
+    ctx.body = {
+      code: 0,
+      data: content,
+      msg: "成功",
+    };
+  } catch (e) {
+    ctx.body = {
+      code: -3,
+      msg: e.message,
+    };
+  }
+});
+
+router.get("/nginx/multipleGet", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+  let { curPath } = ctx.query;
+  console.log(">>", curPath);
+
+  let files = [];
+  try {
+    files = fs.readdirSync(curPath);
+  } catch (e) {
+    ctx.body = {
+      code: -3,
+      msg: e.message,
+    };
+    return;
+  }
+
+  let result = [];
+  // files [ 'args.json', 'temp.sh', 'test.sh' ]
+  let filesFilter = files.filter((item) => {
+    // if ([].includes(item)) {
+    //   return false;
+    // }
+    if (item.startsWith(".")) {
+      return false;
+    }
+    return true;
+  });
+  console.log(filesFilter);
+
+  filesFilter.forEach((filePath) => {
+    console.log(`'${filePath}'`);
+    let info = { name: filePath, content: "", desc: "" };
+    try {
+      const content = fs.readFileSync(`${curPath}/${filePath}`).toString();
+      info.content = content;
+      result.push(info);
+    } catch (e) {
+      console.log("非文件", e.message);
+    }
+  });
+  ctx.body = {
+    code: 0,
+    data: result,
+    msg: "成功",
+  };
+});
+
 app.use(new KoaStatic(path.resolve(__dirname, "../frontend")));
 app.use(router.routes()).use(router.allowedMethods());
 server.listen(args.port, () => logger.info(`服务监听 ${args.port} 端口`));

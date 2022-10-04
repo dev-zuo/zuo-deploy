@@ -1,1 +1,1 @@
-echo 'ls' > projb.sh
+nginx -s reload
