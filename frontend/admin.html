@@ -439,9 +439,9 @@ server {
         },
         nginxOpt(opt) {
           let cmdMap = {
-            'start': 'nginx',
-            'reload': 'nginx -s reload',
-            'stop': 'nginx -s stop'
+            'start': 'sudo nginx',
+            'reload': 'sudo nginx -s reload',
+            'stop': 'sudo nginx -s stop'
           }
           this.curTab = 'SHELL_RUN'
           this.shellText = cmdMap[opt]

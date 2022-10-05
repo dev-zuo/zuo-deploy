@@ -1,1 +1,1 @@
-ls -l
+sudo nginx -s reload
