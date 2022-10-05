@@ -441,6 +441,120 @@ router.get("/nginx/multipleGet", async (ctx) => {
   };
 });
 
+router.get("/https/get", async (ctx) => {
+  if (!ctx.session.isLogin) {
+    ctx.body = {
+      code: -2,
+      msg: "未登录",
+    };
+    return;
+  }
+  let { curPath } = ctx.query;
+  console.log(">>", curPath);
+
+  let files = [];
+  let finalPath = curPath + (curPath.endsWith("/") ? "" : "/") + "cert";
+  let isExist = true;
+  try {
+    fs.statSync(finalPath);
+  } catch (e) {
+    // stats 失败 Error: ENOENT: no such file or directory, stat '/etc/nginx/cert'
+    // 文件不存在，创建该目录
+    isExist = false;
+  }
+
+  try {
+    !isExist && fs.mkdirSync(finalPath);
+    files = fs.readdirSync(finalPath);
+  } catch (e) {
+    ctx.body = {
+      code: -3,
+      msg: e.message,
+    };
+    return;
+  }
+
+  let result = [];
+  // files [ 'args.json', 'temp.sh', 'test.sh' ]
+  let filesFilter = files.filter((item) => {
+    // if ([].includes(item)) {
+    //   return false;
+    // }
+    if (item.startsWith(".")) {
+      return false;
+    }
+    return true;
+  });
+  console.log(filesFilter);
+
+  filesFilter.forEach((filePath) => {
+    console.log(`'${filePath}'`);
+    let info = { name: filePath, content: "", desc: "" };
+    const content = fs.statSync(`${finalPath}/${filePath}`);
+    info.content = content;
+    result.push(info);
+  });
+  ctx.body = {
+    code: 0,
+    data: result,
+    msg: "成功",
+  };
+});
+
+const multer = require("@koa/multer");
+// 文件上传处理
+// 前端 append 文件时使用的是 image 字段
+let singleFileConfig = multer().single("image");
+let multipleFilesConfig = multer().fields([
+  {
+    name: "image",
+    maxCount: 5,
+  },
+]);
+let isMultiple = true;
+let fileConfig = isMultiple ? multipleFilesConfig : singleFileConfig;
+router.post("/upload", fileConfig, async (ctx) => {
+  // 文件外的其他 FormData数据 { param1: 'abc' }
+  console.log("ctx.request.body", ctx.request.body);
+  console.log("ctx.files", ctx.files); // 多文件，返回 { 字段1: [file数组], 字段2: [file数组] }
+  console.log("ctx.file", ctx.file); // 单文件，返回 file 对象
+  let { curPath } = ctx.request.body;
+  let finalPath = curPath + (curPath.endsWith("/") ? "" : "/");
+
+  // 如果是单文件取文件内容，如果是多文件，取第一个文件，前端字段传的 image
+  // 在服务端本地创建文件
+  try {
+    if (isMultiple) {
+      let files = ctx.files["image"];
+      files.forEach((item) => {
+        let { originalname, buffer } = item;
+        fs.writeFileSync(finalPath + originalname, buffer);
+      });
+    } else {
+      let { originalname, buffer } = ctx.file;
+      fs.writeFileSync(finalPath + originalname, buffer);
+    }
+    ctx.body = {
+      code: 0,
+      msg: "成功",
+      data: ctx.request.body,
+    };
+  } catch (e) {
+    ctx.body = {
+      code: -4,
+      msg: e.message,
+    };
+  }
+  // {
+  //   fieldname: 'image',
+  //   originalname: '截屏2020-12-10 下午8.01.44.png',
+  //   encoding: '7bit',
+  //   mimetype: 'image/png',
+  //   buffer: <Buffer 89 50 4e 47 0d 0a 1a 0a 00 00 00 0d 49 48 44 52 00 00 03 18 00 00 01 56 08 06 00 00 00 ea b0 3b 51 00 00 0c 64 69 43 43 50 49 43 43 20 50 72 6f 66 69 ... 90135 more bytes>,
+  //   size: 90185
+  // }
+});
+
 app.use(new KoaStatic(path.resolve(__dirname, "../frontend")));
 app.use(router.routes()).use(router.allowedMethods());
 server.listen(args.port, () => logger.info(`服务监听 ${args.port} 端口`));

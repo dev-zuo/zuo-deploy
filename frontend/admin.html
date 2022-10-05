@@ -34,6 +34,7 @@
     .text-log-wrap pre {
       padding: 0;
       margin: 0;
+      white-space: normal;
     }
 
     .text-log p {
@@ -42,10 +43,14 @@
     }
 
     .nginx-conf-main {
+      margin-top: 15px;
       padding: 0 20px;
       border-radius: 8px;
       color: white;
       background: #333;
+      overflow: hidden;
+      min-height: 100px;
+      overflow-x: scroll;
     }
   </style>
 </head>
@@ -100,13 +105,16 @@
         </el-tabs>
       </div>
       <div v-if="shellList.length">
-        <div>
-          <el-button type="plain" @click="runCurShell" style="margin-top: 15px;" v-if="shellList.length">运行当前脚本
-            {{shellList[curShellTabIndex].name}}</el-button>
-          <el-button type="plain" @click="editFile" style="margin-top: 15px;" v-if="shellList.length">修改
-            {{shellList[curShellTabIndex].name}}</el-button>
-          <el-button type="plain" @click="deleteFile" style="margin-top: 15px;" v-if="shellList.length">删除
-            {{shellList[curShellTabIndex].name}}</el-button>
+        <div style="margin-top: 15px;">
+          <el-button type="plain" @click="runCurShell">
+            运行当前脚本 {{curShellName}}
+          </el-button>
+          <el-button type="plain" @click="editFile">
+            修改 {{curShellName}}
+          </el-button>
+          <el-button type="plain" @click="deleteFileWrap">
+            删除 {{curShellName}}
+          </el-button>
         </div>
         <pre>{{shellList[curShellTabIndex].content}}</pre>
       </div>
@@ -148,12 +156,11 @@
       <div>nginx默认配置目录:{{NGINX_PATH_LIST[curNginxSysIndex].path}}</div>
       <div>nginx默认项目目录:{{NGINX_PATH_LIST[curNginxSysIndex].defaultProjectPath}}</div>
       <!-- <div>推荐多项目配置文件目录: /etc/nginx/sites-available/* </div> -->
-      <el-tabs v-model="curNginxTab">
+      <el-tabs v-model="curNginxTab" @tab-change="curNginxTabChange">
         <el-tab-pane label="主配置" name="NGINX_ADMIN_MAIN"></el-tab-pane>
         <el-tab-pane label="多项目独立nginx配置文件管理" name="NGINX_ADMIN_MULTIPLE"></el-tab-pane>
-        <el-tab-pane label="https证书管理" name="NGINX_ADMIN_TLS"></el-tab-pane>
+        <el-tab-pane label="https证书管理" name="NGINX_ADMIN_HTTPS"></el-tab-pane>
       </el-tabs>
-      curNginxTab: {{curNginxTab}}
       <!-- @start nginx admin - 主配置-->
       <div v-show="curNginxTab === 'NGINX_ADMIN_MAIN'">
         <div style="display:flex;align-items: center;margin-top:15px;">
@@ -163,12 +170,13 @@
         <div class="nginx-conf-main" v-if="curNginxConfigContent" style="position: relative">
           <div style="position: absolute;top:10px;right:10px;">
             <el-button type="plain" @click="editNginxFile">修改</el-button>
-            <el-button type="plain" @click="delNginxFile" disabled>删除</el-button>
+            <el-button type="plain" @click="deleteFileWrap" disabled>删除</el-button>
           </div>
           <pre>{{curNginxConfigContent}}</pre>
         </div>
       </div>
       <!-- @end nginx admin - 主配置-->
+
       <!-- @start nginx admin - 多项目独立nginx配置文件管理 -->
       <div v-show="curNginxTab === 'NGINX_ADMIN_MULTIPLE'">
         <div style="display:flex;align-items: center;margin-top:15px;">
@@ -189,8 +197,8 @@
         <div v-if="nginxFileList.length">
           <div class="nginx-conf-main" v-if="nginxFileList[curNginxFileIndex].content" style="position: relative">
             <div style="position: absolute;top:10px;right:10px;">
-              <el-button type="plain" @click="editNginxFile">修改</el-button>
-              <el-button type="plain" @click="delNginxFile">删除</el-button>
+              <el-button type="plain" @click="editNginxFile('multiple')">修改</el-button>
+              <el-button type="plain" @click="deleteFileWrap">删除</el-button>
             </div>
             <pre>{{nginxFileList[curNginxFileIndex].content}}</pre>
           </div>
@@ -200,11 +208,67 @@
         </div>
         <!-- nginxFileList -->
       </div>
-      <!-- @end nginx admin - 主配置-->
+      <!-- @end nginx admin - 多项目独立nginx配置文件管理 -->
+
+      <!-- @start https_ssl - https证书管理 -->
+      <div v-show="curNginxTab === 'NGINX_ADMIN_HTTPS'">
+        <div>
+          相关链接：
+          <a href="https://console.cloud.tencent.com/ssl">腾讯云ssl申请免费证书</a>、
+          <a href="https://cloud.tencent.com/document/product/400/35244" target="_blank">Nginx 服务器 SSL 证书安装部署</a>
+        </div>
+        <details style="margin: 12px 0">
+          <summary>点击查看 nginx https 证书参考配置</summary>
+          <div class="nginx-conf-main">
+            <pre>
+# 阿里云 windows 服务器 HTTPS server 配置参考（实际配置以官方文档为主）
+# http://www.zuo11.com/blog/2020/6/nginx_https.html
+server {
+    listen       443 ssl;
+    server_name  api.zuo11.com;
+
+    # ssl 证书建议放在 nginx 默认目录下的 cert 目录下
+    ssl_certificate     cert\3391782_api.zuo11.com.pem;
+    ssl_certificate_key cert\3391782_api.zuo11.com.key;
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4;  #使用此加密套件。
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;   #使用该协议进行配置。
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        # root   html;
+        # index  index.html index.htm;
+        proxy_pass http://127.0.0.1:9000;
+    }
+}
+          </pre>
+          </div>
+        </details>
+        <div style="display:flex;align-items: center;margin-top:15px;">
+          <el-button type="plain" @click="getHttpsCert">加载当前目录证书文件</el-button>
+          <span style="margin-left: 15px;">当前目录：</span>
+          <el-input v-model="nginxCertPath" style="width: 300px;" />
+        </div>
+        <div style="display: flex;flex-wrap: wrap;margin: 20px 0;">
+          <div v-for="item in httpsCertList" style="padding: 15px;margin: 10px;border: 1px solid #ccc;border-radius:5px;">
+            {{ item.name }}
+            <el-button type="text" @click="deleteFileWrap(item)">删除</el-button>
+          </div>
+        </div>
+        <div>
+          <!-- http://www.zuo11.com/blog/2021/1/koa-formdata.html -->
+          <input type="file" id="file" multiple @change="uploadFileChange">
+        </div>
+        <div v-if="!httpsCertList.length">暂无数据</div>
+      </div>
+      <!-- @end https_ssl - https证书管理 -->
     </div>
     <!-- @end nginx_admin -->
     <!-- @start 新增 dialog -->
-    <el-dialog v-if="addDialogVisible" v-model="addDialogVisible" title="新增脚本" width="600px">
+    <el-dialog v-if="addDialogVisible" v-model="addDialogVisible" title="新增文件" width="600px">
       <el-form :model="form" :label-width="100">
         <el-form-item label="文件路径">
           <el-input v-model="form.curPath" autocomplete="off" />
@@ -219,7 +283,7 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="addDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveFile">
+          <el-button type="primary" @click="saveFileWrap">
             确认
           </el-button>
         </span>
@@ -283,8 +347,15 @@
           curNginxConfigContent: '',
           curNginxTab: 'NGINX_ADMIN_MAIN',
           nginxMultiplePath: '/etc/nginx/sites-enabled/', // ubuntu
+          nginxCertPath: '/etc/nginx/cert',
           nginxFileList: [],
-          curNginxFileIndex: 0
+          curNginxFileIndex: 0,
+          httpsCertList: []
+        }
+      },
+      computed: {
+        curShellName() {
+          return this.shellList[this.curShellTabIndex].name
         }
       },
       mounted() {
@@ -306,8 +377,57 @@
           })
       },
       methods: {
+        uploadFileChange(event) {
+          let formData = new FormData()
+          // 多个文件上传：使用同一个字段上传
+          console.log(event.target.files) // FileList 类数组对象
+          let files = event.target.files
+          for (let i = 0, len = files.length; i < len; i++) {
+            formData.append('image', files[i])
+          }
+          // 单文件上传
+          // formData.append('image', files[0])
+          formData.append('param1', 'abc')
+          formData.append('curPath', this.nginxCertPath)
+          fetch('/upload', {
+            method: 'POST',
+            body: formData
+          })
+            .then(() => {
+              this.getHttpsCert()
+            })
+            .catch((e) => {
+              this.$message.error(e.message)
+            })
+        },
+        curNginxTabChange() {
+          console.log(this.curNginxTab)
+          if (this.curNginxTab === 'NGINX_ADMIN_HTTPS') {
+            // this.getHttpsCert()
+          }
+        },
+        getHttpsCert() {
+          let curPath = this.NGINX_PATH_LIST[this.curNginxSysIndex].path
+          axios.get('/https/get', { params: { curPath } })
+            .then((response) => {
+              // handle success
+              console.log(response.data);
+              let { code, msg, data } = response.data
+              if (code !== 0) {
+                this.$message.error(msg)
+                return
+              }
+              // this.getShellFileList()
+              this.httpsCertList = data
+            })
+            .catch((err) => {
+              console.log(err);
+              this.$message.error(err?.message)
+            })
+        },
         curNginxSysChange(index) {
           this.nginxMultiplePath = this.NGINX_PATH_LIST[index].multiplePath
+          this.nginxCertPath = this.NGINX_PATH_LIST[index].path + '/cert'
         },
         nginxOpt(opt) {
           let cmdMap = {
@@ -338,7 +458,7 @@
               this.$message.error(err?.message)
             })
         },
-        getMultipleNginxConfig() {
+        getMultipleNginxConfig(isDelete) {
           axios.get('/nginx/multipleGet', { params: { curPath: this.nginxMultiplePath } })
             .then((response) => {
               // handle success
@@ -349,7 +469,7 @@
                 return
               }
               this.nginxFileList = data
-              this.curNginxFileIndex = 0
+              isDelete && (this.curNginxFileIndex = 0) // 删除时，需要重置
             })
             .catch(function (err) {
               console.log(err);
@@ -357,14 +477,57 @@
             })
         },
         addFile() {
-          this.addDialogVisible = true
-          Object.assign(this.form, {
+          let formData = {
             name: '',
             content: '',
             curPath: ''
-          })
+          }
+          if (this.curTab === 'NGINX_ADMIN' && this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
+            formData.curPath = this.nginxMultiplePath
+            // TODO: 安全性方面，增加 curPath 冻结参数
+          }
+          this.addDialogVisible = true
+          Object.assign(this.form, formData)
         },
-        async deleteFile() {
+        async deleteFileWrap(item) {
+          let type = 'shell'
+          let curPath = '.'
+          let name = this.shellList[this.curShellTabIndex].name
+          // 根据当前 tab，设置修改类型
+          if (this.curTab === 'NGINX_ADMIN') {
+            type = 'nginx'
+            if (this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
+              type = 'multipleNginx'
+              curPath = this.nginxMultiplePath
+              name = this.nginxFileList[this.curNginxFileIndex].name
+            }
+          }
+          if (this.curNginxTab === 'NGINX_ADMIN_HTTPS' && item) {
+            type = 'https'
+            curPath = this.nginxCertPath
+            name = item.name
+          }
+          if (type === 'nginx') {
+            this.$message.warning('主配置文件暂时不开放删除功能')
+            return
+          }
+          let successCallbackMap = {
+            'shell': () => {
+              this.getShellFileList()
+            },
+            "nginx": () => {
+              this.getNginxConfig()
+            },
+            "multipleNginx": () => {
+              this.getMultipleNginxConfig('delete')
+            },
+            "https": () => {
+              this.getHttpsCert()
+            }
+          }
+          this.deleteFile(successCallbackMap[type], { name, curPath })
+        },
+        async deleteFile(cb, data) {
           try {
             await this.$confirm(
               '确定要删除吗？',
@@ -378,7 +541,7 @@
           } catch (e) {
             return
           }
-          axios.post('/deleteFile', { name: this.shellList[this.curShellTabIndex].name })
+          axios.post('/deleteFile', { ...data })
             .then((response) => {
               // handle success
               console.log(response.data);
@@ -387,7 +550,7 @@
                 this.$message.error(msg)
                 return
               }
-              this.getShellFileList()
+              cb && cb()
             })
             .catch((err) => {
               console.log(err);
@@ -398,21 +561,27 @@
           this.editDialogVisible = true
           let { name, content } = this.shellList[this.curShellTabIndex]
           Object.assign(this.form, {
+            curPath: '.',
             name,
             content
           })
         },
-        editNginxFile() {
+        editNginxFile(type) {
           this.editDialogVisible = true
-          // let { name, content } = this.shellList[this.curShellTabIndex]
-          Object.assign(this.form, {
+          let formData = {
             curPath: this.NGINX_PATH_LIST[this.curNginxSysIndex].path,
             name: 'nginx.conf',
             content: this.curNginxConfigContent
-          })
-        },
-        delNginxFile() {
-
+          }
+          if (type === 'multiple') {
+            let { name, content } = this.nginxFileList[this.curNginxFileIndex]
+            formData = {
+              curPath: this.nginxMultiplePath,
+              name,
+              content
+            }
+          }
+          Object.assign(this.form, formData)
         },
         editFileSave(cb) {
           axios.post('/editFile', this.form)
@@ -432,9 +601,14 @@
               this.$message.error(err?.message)
             })
         },
-        editFileSaveWrap(type = 'shell') {
+        editFileSaveWrap() {
+          let type = 'shell'
+          // 根据当前 tab，设置修改类型
           if (this.curTab === 'NGINX_ADMIN') {
             type = 'nginx'
+            if (this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
+              type = 'multipleNginx'
+            }
           }
           let successCallbackMap = {
             'shell': () => {
@@ -442,11 +616,38 @@
             },
             "nginx": () => {
               this.getNginxConfig()
+            },
+            "multipleNginx": () => {
+              this.getMultipleNginxConfig()
             }
           }
           this.editFileSave(successCallbackMap[type])
         },
-        saveFile() {
+        saveFileWrap() {
+          let type = 'shell'
+          // 根据当前 tab，设置修改类型
+          if (this.curTab === 'NGINX_ADMIN') {
+            type = 'nginx'
+            if (this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
+              type = 'multipleNginx'
+            }
+          }
+          const successCallbackMap = {
+            'shell': (name) => {
+              this.getShellFileList()
+              name.endsWith('.sh') && this.socket.on('shell-log-' + name, (msg) => {
+                !this.shellMsgObj[name] && (this.shellMsgObj[name] = [])
+                this.shellMsgObj[name].push(msg)
+              })
+            },
+            "multipleNginx": () => {
+              this.getMultipleNginxConfig()
+            }
+          }
+          this.saveFile(successCallbackMap[type])
+        },
+
+        saveFile(cb) {
           console.log(this.form)
           let { name, content } = this.form
           if (!name || !content) {
@@ -463,11 +664,7 @@
                 return
               }
               this.addDialogVisible = false
-              this.getShellFileList()
-              name.endsWith('.sh') && this.socket.on('shell-log-' + name, (msg) => {
-                !this.shellMsgObj[name] && (this.shellMsgObj[name] = [])
-                this.shellMsgObj[name].push(msg)
-              })
+              cb && cb(name)
               console.log(msg)
             })
             .catch(function (err) {

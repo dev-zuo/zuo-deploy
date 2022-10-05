@@ -4,7 +4,7 @@ const logger = require("./logger");
 // 使用子进程执行命令
 function runCmd(cmd, args, callback, socketIo, msgTag = "common-msg") {
   const spawn = require("child_process").spawn;
-  const child = spawn(cmd, args);
+  const child = spawn(cmd, args); // sh xxx.sh
   let resp = "当前执行路径：" + process.cwd() + "\n";
   logger.info(resp);
   socketIo && socketIo.emit(msgTag, resp);
