@@ -6,16 +6,63 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>zuo-deploy</title>
-  <!-- 导入样式 -->
-  <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
-  <!-- 导入 Vue 3 -->
-  <script src="//unpkg.com/vue@next"></script>
-  <!-- 导入组件库 -->
-  <script src="//unpkg.com/element-plus"></script>
-
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <link rel="stylesheet" href="/static/element-plus.2.2.18.index.css" />
+  <script src="/static/vue.3.2.41.min.js"></script>
+  <script src="/static/element-plus-2.2.18.min.js"></script>
+  <script src="/static/axios.1.1.2.min.js"></script>
+  <script src="/static/socket.io.4.4.1.min.js"></script>
+  <script src="/static/lodash.4.17.21.min.js"></script>
   <style>
+    :root {
+      --el-color-primary: #4154ff;
+    }
+
+    body {
+      padding: 0;
+      margin: 0;
+      color: #333;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 20px;
+      box-shadow: 0 0 5px #ccc;
+    }
+
+    .header .title {
+      font-size: 20px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .header-nav {
+      margin-left: 50px;
+    }
+
+    .header-nav span {
+      margin: 0 15px;
+      cursor: pointer;
+    }
+
+    .header-nav span:hover, .header-nav span.active {
+      color: #4154ff;
+    }
+
+    .header-right a {
+      margin: 0 15px;
+      color: #333;
+      text-decoration: none;
+    }
+
+    .main {
+      margin: 0 20px;
+    }
+
     .login-area {
       margin-bottom: 20px;
       border: 1px solid #ddd;
@@ -34,7 +81,8 @@
     .text-log-wrap pre {
       padding: 0;
       margin: 0;
-      white-space: pre-line; /* 默认 white-space 处理 \n 会有换行，white-space:normal 不会处理 \n*/
+      white-space: pre-line;
+      /* 默认 white-space 处理 \n 会有换行，white-space:normal 不会处理 \n*/
     }
 
     .text-log p {
@@ -56,171 +104,193 @@
 </head>
 
 <body>
-  <div id="app" style="margin:0 20px;">
-    <div class="login-area">
-      <div v-if="!isLogin">
-        <el-input v-model="password" type="password" style="width: 200px;"></el-input>
-        &nbsp;
-        <el-button type="primary" @click="login">登录</el-button>
+  <div id="app">
+    <el-dialog v-model="dialogLoginVisible" title="登录" width="366px">
+      <div class="login-area">
+        <div v-if="!isLogin">
+          <el-input v-model="password" type="password" placeholder="请输入服务密码，默认 888888"></el-input>
+        </div>
+        <div v-else>已登录</div>
       </div>
-      <div v-else>已登录</div>
-    </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogLoginVisible = false">取消</el-button>
+          <el-button type="primary" @click="login">
+            登录
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
 
-    <div>
-      <el-tabs v-model="curTab" @tab-change="tabChange">
-        <el-tab-pane label="运行 shell 脚本" name="SHELL_RUN"></el-tab-pane>
-        <el-tab-pane label="shell文件管理" name="SHELL_ADMIN"></el-tab-pane>
-        <el-tab-pane label="nginx配置管理" name="NGINX_ADMIN"></el-tab-pane>
-      </el-tabs>
-    </div>
-    <!-- @start shell_run -->
-    <div v-show="curTab === 'SHELL_RUN'">
-      <div style="margin: 20px 0; width: 500px;">
-        <el-input v-model="shellText" type="textarea" placeholder="请输入shell脚本" :rows="5"></el-input>
-        <el-button type="plain" @click="runShell" style="margin-top: 15px;;">运行</el-button>
-      </div>
-      <div>
-        <div style="display: flex;align-items: center;justify-content: space-between;">
-          <p>日志:</p>
-          <el-button type="plain" size="small" @click="msgList.splice(0, msgList.length)">清除日志</el-button>
-        </div>
-        <div class="text-log-wrap">
-          <pre v-if="msgList.length" class="text-log">
-            <pre v-for="(text, index) in msgList" :key="text+index">{{text}}</pre>
-          </pre>
-          <div v-else></div>
+    <header class="header">
+      <div class="header-left">
+        <span class="title"
+          title="基于 Vue3 + NodeJS 的 Linux 运维部署面板, 支持实时终端、自动化部署、Nginx 配置管理/操作、Https 证书管理等">
+          ZuoDeploy
+        </span>
+        <div class="header-nav">
+          <span v-for="item in navList" :key="item.title" @click="navClick(item.key)"
+            :class="{active: item.key === curNav}">
+            {{ item.title }}
+          </span>
         </div>
       </div>
-    </div>
-    <!-- @end shell_run -->
-    <!-- @start shell_admin -->
-    <div v-show="curTab === 'SHELL_ADMIN'">
-      <div>
-        <el-button type="plain" @click="addFile" style="margin-top: 15px;">新增脚本</el-button>
+      <div class="header-right">
+        <a href="https://github.com/zuoxiaobai/zuo-deploy" target="_blank">文档</a>
+        <a href="https://github.com/zuoxiaobai/zuo-deploy" target="_blank">Github</a>
       </div>
-      <div>
-        <el-tabs v-model="curShellTabIndex">
-          <el-tab-pane v-for="(item, index) in shellList" :key="item.name" :label="`${item.name}`" :name="index">
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-      <div v-if="shellList.length">
-        <div style="margin-top: 15px;">
-          <el-button type="plain" @click="runCurShell">
-            运行当前脚本 {{curShellName}}
-          </el-button>
-          <el-button type="plain" @click="editFile">
-            修改 {{curShellName}}
-          </el-button>
-          <el-button type="plain" @click="deleteFileWrap">
-            删除 {{curShellName}}
-          </el-button>
+    </header>
+
+    <main class="main">
+      <!-- @start shell_run -->
+      <div v-show="curNav === 'SHELL_RUN'">
+        <div style="margin: 20px 0; width: 500px;">
+          <el-input v-model="shellText" type="textarea" placeholder="请输入shell脚本" :rows="5"></el-input>
+          <el-button type="plain" @click="runShell" style="margin-top: 15px;;">运行</el-button>
         </div>
-        <pre>{{shellList[curShellTabIndex].content}}</pre>
-      </div>
-      <div v-else>
-        暂无shell脚本文件
-      </div>
-      <div v-if="shellList.length">
-        <div style="display: flex;align-items: center;justify-content: space-between;">
-          <p>日志:</p>
-          <el-button type="plain" size="small" @click="shellMsgObj[shellList[curShellTabIndex].name] = []">清除日志
-          </el-button>
-        </div>
-        <div class="text-log-wrap">
-          <pre v-if="shellMsgObj[shellList[curShellTabIndex].name]?.length" class="text-log">
-            <pre v-for="(text, index) in shellMsgObj[shellList[curShellTabIndex].name]" :key="text+index">{{text}}</pre>
-          </pre>
-          <div v-else></div>
-        </div>
-      </div>
-    </div>
-    <!-- @end shell_admin -->
-    <!-- @start nginx_admin -->
-    <div v-show="curTab === 'NGINX_ADMIN'" style="position: relative;">
-      <div style="position: absolute;top:10px;right:10px;">
-        <el-button type="plain" @click="nginxOpt('start')">启动nginx</el-button>
-        <el-button type="plain" @click="nginxOpt('reload')">重启nginx</el-button>
-        <el-button type="plain" @click="nginxOpt('stop')">停止nginx</el-button>
-      </div>
-      <div>
-        服务器系统：
-        <!-- <div> ubuntu 系统默认安装目录 /etc/nginx/nginx.conf </div>
-        <div> macOs 系统默认安装目录 /usr/local/etc/nginx.conf </div> -->
-        <el-radio-group v-model="curNginxSysIndex" class="ml-4" @change="curNginxSysChange">
-          <el-radio v-for="(item, index) in NGINX_PATH_LIST" :key="item.key" :label="index" size="large">
-            <span :title="item.desc">{{item.key}}</span>
-          </el-radio>
-        </el-radio-group>
-      </div>
-      <div>nginx默认配置目录:{{NGINX_PATH_LIST[curNginxSysIndex].path}}</div>
-      <div>nginx默认项目目录:{{NGINX_PATH_LIST[curNginxSysIndex].defaultProjectPath}}</div>
-      <!-- <div>推荐多项目配置文件目录: /etc/nginx/sites-available/* </div> -->
-      <el-tabs v-model="curNginxTab" @tab-change="curNginxTabChange">
-        <el-tab-pane label="主配置" name="NGINX_ADMIN_MAIN"></el-tab-pane>
-        <el-tab-pane label="多项目独立nginx配置文件管理" name="NGINX_ADMIN_MULTIPLE"></el-tab-pane>
-        <el-tab-pane label="https证书管理" name="NGINX_ADMIN_HTTPS"></el-tab-pane>
-      </el-tabs>
-      <!-- @start nginx admin - 主配置-->
-      <div v-show="curNginxTab === 'NGINX_ADMIN_MAIN'">
-        <div style="display:flex;align-items: center;margin-top:15px;">
-          <el-button type="plain" @click="getNginxConfig">加载nginx配置文件</el-button>
-          <span style="margin-left: 15px;">{{NGINX_PATH_LIST[curNginxSysIndex].path + '/nginx.conf'}}</span>
-        </div>
-        <div class="nginx-conf-main" v-if="curNginxConfigContent" style="position: relative">
-          <div style="position: absolute;top:10px;right:10px;">
-            <el-button type="plain" @click="editNginxFile">修改</el-button>
-            <el-button type="plain" @click="deleteFileWrap" disabled>删除</el-button>
+        <div>
+          <div style="display: flex;align-items: center;justify-content: space-between;">
+            <p>日志:</p>
+            <el-button type="plain" size="small" @click="msgList.splice(0, msgList.length)">清除日志</el-button>
           </div>
-          <pre>{{curNginxConfigContent}}</pre>
+          <div class="text-log-wrap">
+            <pre v-if="msgList.length" class="text-log">
+            <pre v-for="(text, index) in msgList" :key="text+index">{{text}}</pre>
+            </pre>
+            <div v-else></div>
+          </div>
         </div>
       </div>
-      <!-- @end nginx admin - 主配置-->
-
-      <!-- @start nginx admin - 多项目独立nginx配置文件管理 -->
-      <div v-show="curNginxTab === 'NGINX_ADMIN_MULTIPLE'">
-        <div style="display:flex;align-items: center;margin-top:15px;">
-          <el-button type="plain" @click="getMultipleNginxConfig">加载当前目录nginx配置文件</el-button>
-          <span style="margin-left: 15px;">当前目录：</span>
-          <el-input v-model="nginxMultiplePath" style="width: 300px;" />
+      <!-- @end shell_run -->
+      <!-- @start shell_admin -->
+      <div v-show="curNav === 'SHELL_ADMIN'">
+        <div>
+          <el-button type="plain" @click="addFile" style="margin-top: 15px;">新增脚本</el-button>
         </div>
         <div>
-          <el-button type="plain" @click="addFile" style="margin-top: 15px;">新增nginx配置文件</el-button>
-        </div>
-        <!---tabs-->
-        <div>
-          <el-tabs v-model="curNginxFileIndex">
-            <el-tab-pane v-for="(item, index) in nginxFileList" :key="item.name" :label="`${item.name}`" :name="index">
+          <el-tabs v-model="curShellTabIndex">
+            <el-tab-pane v-for="(item, index) in shellList" :key="item.name" :label="`${item.name}`" :name="index">
             </el-tab-pane>
           </el-tabs>
         </div>
-        <div v-if="nginxFileList.length">
-          <div class="nginx-conf-main" v-if="nginxFileList[curNginxFileIndex].content" style="position: relative">
-            <div style="position: absolute;top:10px;right:10px;">
-              <el-button type="plain" @click="editNginxFile('multiple')">修改</el-button>
-              <el-button type="plain" @click="deleteFileWrap">删除</el-button>
-            </div>
-            <pre>{{nginxFileList[curNginxFileIndex].content}}</pre>
+        <div v-if="shellList.length">
+          <div style="margin-top: 15px;">
+            <el-button type="plain" @click="runCurShell">
+              运行当前脚本 {{curShellName}}
+            </el-button>
+            <el-button type="plain" @click="editFile">
+              修改 {{curShellName}}
+            </el-button>
+            <el-button type="plain" @click="deleteFileWrap">
+              删除 {{curShellName}}
+            </el-button>
           </div>
+          <pre>{{shellList[curShellTabIndex].content}}</pre>
         </div>
         <div v-else>
-          暂无nginx配置文件
+          暂无shell脚本文件
         </div>
-        <!-- nginxFileList -->
+        <div v-if="shellList.length">
+          <div style="display: flex;align-items: center;justify-content: space-between;">
+            <p>日志:</p>
+            <el-button type="plain" size="small" @click="shellMsgObj[shellList[curShellTabIndex].name] = []">清除日志
+            </el-button>
+          </div>
+          <div class="text-log-wrap">
+            <pre v-if="shellMsgObj[shellList[curShellTabIndex].name]?.length" class="text-log">
+            <pre v-for="(text, index) in shellMsgObj[shellList[curShellTabIndex].name]" :key="text+index">{{text}}</pre>
+            </pre>
+            <div v-else></div>
+          </div>
+        </div>
       </div>
-      <!-- @end nginx admin - 多项目独立nginx配置文件管理 -->
-
-      <!-- @start https_ssl - https证书管理 -->
-      <div v-show="curNginxTab === 'NGINX_ADMIN_HTTPS'">
-        <div>
-          相关链接：
-          <a href="https://console.cloud.tencent.com/ssl">腾讯云ssl申请免费证书</a>、
-          <a href="https://cloud.tencent.com/document/product/400/35244" target="_blank">Nginx 服务器 SSL 证书安装部署</a>
+      <!-- @end shell_admin -->
+      <!-- @start nginx_admin -->
+      <div v-show="curNav === 'NGINX_ADMIN'" style="position: relative;">
+        <div style="position: absolute;top:10px;right:10px;">
+          <el-button type="plain" @click="nginxOpt('start')">启动nginx</el-button>
+          <el-button type="plain" @click="nginxOpt('reload')">重启nginx</el-button>
+          <el-button type="plain" @click="nginxOpt('stop')">停止nginx</el-button>
         </div>
-        <details style="margin: 12px 0">
-          <summary>点击查看 nginx https 证书参考配置</summary>
-          <div class="nginx-conf-main">
-            <pre>
+        <div>
+          服务器系统：
+          <!-- <div> ubuntu 系统默认安装目录 /etc/nginx/nginx.conf </div>
+        <div> macOs 系统默认安装目录 /usr/local/etc/nginx.conf </div> -->
+          <el-radio-group v-model="curNginxSysIndex" class="ml-4" @change="curNginxSysChange">
+            <el-radio v-for="(item, index) in NGINX_PATH_LIST" :key="item.key" :label="index" size="large">
+              <span :title="item.desc">{{item.key}}</span>
+            </el-radio>
+          </el-radio-group>
+        </div>
+        <div>nginx默认配置目录:{{NGINX_PATH_LIST[curNginxSysIndex].path}}</div>
+        <div>nginx默认项目目录:{{NGINX_PATH_LIST[curNginxSysIndex].defaultProjectPath}}</div>
+        <!-- <div>推荐多项目配置文件目录: /etc/nginx/sites-available/* </div> -->
+        <el-tabs v-model="curNginxTab" @tab-change="curNginxTabChange">
+          <el-tab-pane label="主配置" name="NGINX_ADMIN_MAIN"></el-tab-pane>
+          <el-tab-pane label="多项目独立nginx配置文件管理" name="NGINX_ADMIN_MULTIPLE"></el-tab-pane>
+          <el-tab-pane label="https证书管理" name="NGINX_ADMIN_HTTPS"></el-tab-pane>
+        </el-tabs>
+        <!-- @start nginx admin - 主配置-->
+        <div v-show="curNginxTab === 'NGINX_ADMIN_MAIN'">
+          <div style="display:flex;align-items: center;margin-top:15px;">
+            <el-button type="plain" @click="getNginxConfig">加载nginx配置文件</el-button>
+            <span style="margin-left: 15px;">{{NGINX_PATH_LIST[curNginxSysIndex].path + '/nginx.conf'}}</span>
+          </div>
+          <div class="nginx-conf-main" v-if="curNginxConfigContent" style="position: relative">
+            <div style="position: absolute;top:10px;right:10px;">
+              <el-button type="plain" @click="editNginxFile">修改</el-button>
+              <el-button type="plain" @click="deleteFileWrap" disabled>删除</el-button>
+            </div>
+            <pre>{{curNginxConfigContent}}</pre>
+          </div>
+        </div>
+        <!-- @end nginx admin - 主配置-->
+
+        <!-- @start nginx admin - 多项目独立nginx配置文件管理 -->
+        <div v-show="curNginxTab === 'NGINX_ADMIN_MULTIPLE'">
+          <div style="display:flex;align-items: center;margin-top:15px;">
+            <el-button type="plain" @click="getMultipleNginxConfig">加载当前目录nginx配置文件</el-button>
+            <span style="margin-left: 15px;">当前目录：</span>
+            <el-input v-model="nginxMultiplePath" style="width: 300px;" />
+          </div>
+          <div>
+            <el-button type="plain" @click="addFile" style="margin-top: 15px;">新增nginx配置文件</el-button>
+          </div>
+          <!---tabs-->
+          <div>
+            <el-tabs v-model="curNginxFileIndex">
+              <el-tab-pane v-for="(item, index) in nginxFileList" :key="item.name" :label="`${item.name}`"
+                :name="index">
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+          <div v-if="nginxFileList.length">
+            <div class="nginx-conf-main" v-if="nginxFileList[curNginxFileIndex].content" style="position: relative">
+              <div style="position: absolute;top:10px;right:10px;">
+                <el-button type="plain" @click="editNginxFile('multiple')">修改</el-button>
+                <el-button type="plain" @click="deleteFileWrap">删除</el-button>
+              </div>
+              <pre>{{nginxFileList[curNginxFileIndex].content}}</pre>
+            </div>
+          </div>
+          <div v-else>
+            暂无nginx配置文件
+          </div>
+          <!-- nginxFileList -->
+        </div>
+        <!-- @end nginx admin - 多项目独立nginx配置文件管理 -->
+
+        <!-- @start https_ssl - https证书管理 -->
+        <div v-show="curNginxTab === 'NGINX_ADMIN_HTTPS'">
+          <div>
+            相关链接：
+            <a href="https://console.cloud.tencent.com/ssl">腾讯云ssl申请免费证书</a>、
+            <a href="https://cloud.tencent.com/document/product/400/35244" target="_blank">Nginx 服务器 SSL 证书安装部署</a>
+          </div>
+          <details style="margin: 12px 0">
+            <summary>点击查看 nginx https 证书参考配置</summary>
+            <div class="nginx-conf-main">
+              <pre>
 # 阿里云 windows 服务器 HTTPS server 配置参考（实际配置以官方文档为主）
 # http://www.zuo11.com/blog/2020/6/nginx_https.html
 server {
@@ -245,88 +315,91 @@ server {
     }
 }
           </pre>
+            </div>
+          </details>
+          <div style="display:flex;align-items: center;margin-top:15px;">
+            <el-button type="plain" @click="getHttpsCert">加载当前目录证书文件</el-button>
+            <span style="margin-left: 15px;">当前目录：</span>
+            <el-input v-model="nginxCertPath" style="width: 300px;" />
           </div>
-        </details>
-        <div style="display:flex;align-items: center;margin-top:15px;">
-          <el-button type="plain" @click="getHttpsCert">加载当前目录证书文件</el-button>
-          <span style="margin-left: 15px;">当前目录：</span>
-          <el-input v-model="nginxCertPath" style="width: 300px;" />
-        </div>
-        <div style="display: flex;flex-wrap: wrap;margin: 20px 0;">
-          <div v-for="item in httpsCertList" style="padding: 15px;margin: 10px;border: 1px solid #ccc;border-radius:5px;">
-            {{ item.name }}
-            <el-button type="text" @click="deleteFileWrap(item)">删除</el-button>
+          <div style="display: flex;flex-wrap: wrap;margin: 20px 0;">
+            <div v-for="item in httpsCertList"
+              style="padding: 15px;margin: 10px;border: 1px solid #ccc;border-radius:5px;">
+              {{ item.name }}
+              <el-button type="text" @click="deleteFileWrap(item)">删除</el-button>
+            </div>
           </div>
+          <div>
+            <!-- http://www.zuo11.com/blog/2021/1/koa-formdata.html -->
+            <input type="file" id="file" multiple @change="uploadFileChange">
+          </div>
+          <div v-if="!httpsCertList.length">暂无数据</div>
         </div>
-        <div>
-          <!-- http://www.zuo11.com/blog/2021/1/koa-formdata.html -->
-          <input type="file" id="file" multiple @change="uploadFileChange">
-        </div>
-        <div v-if="!httpsCertList.length">暂无数据</div>
+        <!-- @end https_ssl - https证书管理 -->
       </div>
-      <!-- @end https_ssl - https证书管理 -->
-    </div>
-    <!-- @end nginx_admin -->
-    <!-- @start 新增 dialog -->
-    <el-dialog v-if="addDialogVisible" v-model="addDialogVisible" title="新增文件" width="600px">
-      <el-form :model="form" :label-width="100">
-        <el-form-item label="文件路径">
-          <el-input v-model="form.curPath" autocomplete="off" />
-        </el-form-item>
-        <el-form-item label="文件名">
-          <el-input v-model="form.name" autocomplete="off" placeholder="如果是脚本文件，请以 .sh 结尾"/>
-        </el-form-item>
-        <el-form-item label="文件内容">
-          <el-input v-model="form.content" type="textarea" :rows="10" autocomplete="off" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="addDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveFileWrap">
-            确认
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-    <!-- @end 新增 dialog-->
+      <!-- @end nginx_admin -->
+      <!-- @start 新增 dialog -->
+      <el-dialog v-if="addDialogVisible" v-model="addDialogVisible" title="新增文件" width="600px">
+        <el-form :model="form" :label-width="100">
+          <el-form-item label="文件路径">
+            <el-input v-model="form.curPath" autocomplete="off" />
+          </el-form-item>
+          <el-form-item label="文件名">
+            <el-input v-model="form.name" autocomplete="off" placeholder="如果是脚本文件，请以 .sh 结尾" />
+          </el-form-item>
+          <el-form-item label="文件内容">
+            <el-input v-model="form.content" type="textarea" :rows="10" autocomplete="off" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="addDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveFileWrap">
+              确认
+            </el-button>
+          </span>
+        </template>
+      </el-dialog>
+      <!-- @end 新增 dialog-->
 
-    <!-- @start 修改 dialog -->
-    <el-dialog v-if="editDialogVisible" v-model="editDialogVisible" title="修改文件" style="width: 90%;
+      <!-- @start 修改 dialog -->
+      <el-dialog v-if="editDialogVisible" v-model="editDialogVisible" title="修改文件" style="width: 90%;
     max-width: 1280px;">
-      <el-form :model="form" :label-width="100">
-        <el-form-item label="文件路径">
-          <el-input v-model="form.curPath" disabled autocomplete="off" />
-        </el-form-item>
-        <el-form-item label="文件名">
-          <el-input v-model="form.name" disabled autocomplete="off" />
-        </el-form-item>
-        <el-form-item label="文件内容">
-          <el-input v-model="form.content" type="textarea" :rows="15" autocomplete="off" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="editFileSaveWrap">
-            确认
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-    <!-- @end 修改 dialog-->
+        <el-form :model="form" :label-width="100">
+          <el-form-item label="文件路径">
+            <el-input v-model="form.curPath" disabled autocomplete="off" />
+          </el-form-item>
+          <el-form-item label="文件名">
+            <el-input v-model="form.name" disabled autocomplete="off" />
+          </el-form-item>
+          <el-form-item label="文件内容">
+            <el-input v-model="form.content" type="textarea" :rows="15" autocomplete="off" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="editDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="editFileSaveWrap">
+              确认
+            </el-button>
+          </span>
+        </template>
+      </el-dialog>
+      <!-- @end 修改 dialog-->
+    </main>
   </div>
   <script>
     const app = {
       data() {
         return {
+          dialogLoginVisible: false,
           counter: 0,
           deployLog: '点击按钮进行部署',
           msgList: [],
           password: '',
           isLogin: false,
           shellText: '', // shell 脚本内容
-          curTab: 'SHELL_RUN', // SHELL_ADMIN,SHELL_RUN
+          curNav: 'SHELL_RUN', // SHELL_ADMIN,SHELL_RUN
           shellList: [],
           curShellTabIndex: 0,
           shellMsgObj: {},
@@ -350,7 +423,12 @@ server {
           nginxCertPath: '/etc/nginx/cert',
           nginxFileList: [],
           curNginxFileIndex: 0,
-          httpsCertList: []
+          httpsCertList: [],
+          navList: [
+            { title: '实时终端', key: 'SHELL_RUN' },
+            { title: '部署脚本管理', key: 'SHELL_ADMIN' },
+            { title: 'Nginx/Https证书管理', key: 'NGINX_ADMIN' },
+          ]
         }
       },
       computed: {
@@ -358,25 +436,55 @@ server {
           return this.shellList[this.curShellTabIndex].name
         }
       },
+      created() {
+        axios.interceptors.response.use((response) => {
+          console.log('响应拦截', response)
+          // 如果身份校验失败，返回登录页
+          let { code, msg } = response.data || {}
+          if (code === -2 && msg === "未登录") {
+            this.showLogin()
+          }
+          return response;
+        }, (error) => {
+          // Do something with response error
+          return Promise.reject(error);
+        });
+      },
       mounted() {
+        console.log('test', _)
         this.socket = io() // 链接到 socket 服务器
         this.socket.on('runShell', (msg) => {
           this.msgList.push(msg)
         })
         axios.get('/isLogin')
           .then((response) => {
-            console.log(response.data);
             let { code, msg, data } = response.data
             if (data) {
               this.isLogin = true
               this.getShellFileList()
               // this.getNginxConfig()
+            } else {
+              this.showLogin()
             }
           }).catch(function (error) {
             console.log(error);
+            this.$message.error('获取登录状态失败, ' + error.message)
+            this.showLogin()
           })
       },
       methods: {
+        navClick(key) {
+          if (this.curNav !== key) {
+            this.curNav = key
+          }
+        },
+        showLogin(val) {
+          if (val !== undefined) {
+            this.dialogLoginVisible = val
+            return
+          }
+          this.dialogLoginVisible = true
+        },
         uploadFileChange(event) {
           let formData = new FormData()
           // 多个文件上传：使用同一个字段上传
@@ -396,11 +504,11 @@ server {
             .then(async (res) => {
               let data = await res.json()
               console.log(data)
-              let {code, msg}= data
+              let { code, msg } = data
               if (code !== 0) {
                 this.$message.error(msg)
                 return
-              } 
+              }
               this.$message.success('上传成功')
               this.getHttpsCert()
             })
@@ -443,7 +551,7 @@ server {
             'reload': 'sudo nginx -s reload',
             'stop': 'sudo nginx -s stop'
           }
-          this.curTab = 'SHELL_RUN'
+          this.curNav = 'SHELL_RUN'
           this.shellText = cmdMap[opt]
           this.runShell()
         },
@@ -490,7 +598,7 @@ server {
             content: '',
             curPath: ''
           }
-          if (this.curTab === 'NGINX_ADMIN' && this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
+          if (this.curNav === 'NGINX_ADMIN' && this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
             formData.curPath = this.nginxMultiplePath
             // TODO: 安全性方面，增加 curPath 冻结参数
           }
@@ -502,7 +610,7 @@ server {
           let curPath = '.'
           let name = this.shellList[this.curShellTabIndex].name
           // 根据当前 tab，设置修改类型
-          if (this.curTab === 'NGINX_ADMIN') {
+          if (this.curNav === 'NGINX_ADMIN') {
             type = 'nginx'
             if (this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
               type = 'multipleNginx'
@@ -612,7 +720,7 @@ server {
         editFileSaveWrap() {
           let type = 'shell'
           // 根据当前 tab，设置修改类型
-          if (this.curTab === 'NGINX_ADMIN') {
+          if (this.curNav === 'NGINX_ADMIN') {
             type = 'nginx'
             if (this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
               type = 'multipleNginx'
@@ -634,7 +742,7 @@ server {
         saveFileWrap() {
           let type = 'shell'
           // 根据当前 tab，设置修改类型
-          if (this.curTab === 'NGINX_ADMIN') {
+          if (this.curNav === 'NGINX_ADMIN') {
             type = 'nginx'
             if (this.curNginxTab === 'NGINX_ADMIN_MULTIPLE') {
               type = 'multipleNginx'
@@ -714,9 +822,6 @@ server {
               this.$message.error(err.message)
             })
         },
-        tabChange(name) {
-          console.log(this.curTab, name)
-        },
         getShellFileList() {
           axios.get('/shell/get')
             .then((response) => {
@@ -758,14 +863,15 @@ server {
               if (code === 0) {
                 this.isLogin = true
                 this.getShellFileList()
+                this.showLogin(false) // 关闭登录弹窗
                 // this.getNginxConfig()
               } else {
-                this.$message.error(msg)
+                this.$message.error('登录失败, ' + msg)
               }
             })
             .catch(function (err) {
               console.log(err);
-              this.$message.error(err.message)
+              this.$message.error('登录失败', err.message)
             })
         },
         deploy() {
