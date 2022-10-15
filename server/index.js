@@ -215,7 +215,10 @@ router.get("/shell/get", async (ctx) => {
   // ],
   ctx.body = {
     code: 0,
-    data: result,
+    data: {
+      processCwd: process.cwd(),
+      shellList: result,
+    },
     msg: "成功",
   };
 });

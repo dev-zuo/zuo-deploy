@@ -5,17 +5,18 @@ const logger = require("./logger");
 function runCmd(cmd, args, callback, socketIo, msgTag = "common-msg") {
   const spawn = require("child_process").spawn;
   const child = spawn(cmd, args); // sh xxx.sh
-  let resp = "当前执行路径：" + process.cwd() + "\n";
-  logger.info(resp);
-  socketIo && socketIo.emit(msgTag, resp);
-  let shellCmd = cmd + " " + args + "\n";
+  let resp = "";
+  // let resp = "当前执行路径：" + process.cwd() + "\n";
+  // logger.info(resp);
+  // socketIo && socketIo.emit(msgTag, resp);
+  // let shellCmd = cmd + " " + args + "\n";
   let shellText = args[0].includes(".sh")
     ? fs.readFileSync(args[0] || "").toString()
     : "";
-  socketIo && socketIo.emit(msgTag, `开始执行脚本： ${shellCmd}`);
-  socketIo && socketIo.emit(msgTag, `@start 脚本内容-------`);
+  // socketIo && socketIo.emit(msgTag, `开始执行脚本： ${shellCmd}`);
+  socketIo && socketIo.emit(msgTag, `--------------`);
   socketIo && socketIo.emit(msgTag, shellText);
-  socketIo && socketIo.emit(msgTag, `@end 脚本内容-------`);
+  socketIo && socketIo.emit(msgTag, `--------------`);
   child.stdout.on("data", (buffer) => {
     let info = buffer.toString();
     info = `${new Date().toLocaleString()}: ${info}`;
