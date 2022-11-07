@@ -120,6 +120,29 @@
       padding: 15px 20px;
       margin: 10px 0;
     }
+
+    .cert-desc {
+      font-size: 14px;
+      margin-top: 15px;
+    }
+
+    .cert-desc a {
+      color: #4154ff;
+      font-size: 14px;
+    }
+
+    .file-list-item {
+      padding: 8px 15px;
+      margin: 10px;
+      /* border: 1px solid #dfdfef; */
+      box-shadow: 0 0 5px #ddd;
+      border-radius:5px;
+    }
+
+    .el-button.el-button--primary:focus,.el-button.el-button--primary:hover {
+      background-color: #4154ff;
+      border-color: #4154ff;
+    }
   </style>
 </head>
 
@@ -215,7 +238,7 @@
           <pre>{{shellList[curShellTabIndex].content}}</pre>
         </div>
         <div v-else class="desc">
-          暂无shell脚本文件
+          暂无 shell 脚本文件
         </div>
         <div v-if="shellList.length">
           <div style="display: flex;align-items: center;justify-content: space-between;">
@@ -284,16 +307,14 @@
 
         <!-- @start nginx admin - 多项目独立nginx配置文件管理 -->
         <div v-show="curNginxTab === 'NGINX_ADMIN_MULTIPLE'">
-          <div style="display:flex;align-items: center;margin-top:15px;">
-            <el-button @click="getMultipleNginxConfig">加载当前目录nginx配置文件</el-button>
+          <div style="display:flex;align-items: center;margin-top:8px;">
+            <el-button type="primary" @click="getMultipleNginxConfig">加载 Nginx 配置文件</el-button>
+            <el-button @click="addFile" style="margin-left: 15px;">新增</el-button>
             <span style="margin-left: 15px;">当前目录：</span>
             <el-input v-model="nginxMultiplePath" style="width: 300px;" />
           </div>
-          <div>
-            <el-button @click="addFile" style="margin-top: 15px;">新增nginx配置文件</el-button>
-          </div>
           <!---tabs-->
-          <div>
+          <div style="margin-top: 15px;">
             <el-tabs v-model="curNginxFileIndex">
               <el-tab-pane v-for="(item, index) in nginxFileList" :key="item.name" :label="`${item.name}`"
                 :name="index">
@@ -304,13 +325,13 @@
             <div class="nginx-conf-main" v-if="nginxFileList[curNginxFileIndex].content" style="position: relative">
               <div style="position: absolute;top:10px;right:10px;">
                 <el-button @click="editNginxFile('multiple')">修改</el-button>
-                <el-button @click="deleteFileWrap">删除</el-button>
+                <el-button type="danger" @click="deleteFileWrap">删除</el-button>
               </div>
               <pre>{{nginxFileList[curNginxFileIndex].content}}</pre>
             </div>
           </div>
-          <div v-else>
-            暂无nginx配置文件
+          <div v-else class="desc">
+            暂无 Nginx 配置文件
           </div>
           <!-- nginxFileList -->
         </div>
@@ -318,13 +339,13 @@
 
         <!-- @start https_ssl - https证书管理 -->
         <div v-show="curNginxTab === 'NGINX_ADMIN_HTTPS'">
-          <div>
-            相关链接：
-            <a href="https://console.cloud.tencent.com/ssl">腾讯云ssl申请免费证书</a>、
-            <a href="https://cloud.tencent.com/document/product/400/35244" target="_blank">Nginx 服务器 SSL 证书安装部署</a>
-          </div>
-          <details style="margin: 12px 0">
-            <summary>点击查看 nginx https 证书参考配置</summary>
+          <details style="margin: 3px 0 12px">
+            <summary>点击查看 Nginx Https 证书参考配置</summary>
+            <div class="cert-desc">
+              相关链接：
+              <a href="https://console.cloud.tencent.com/ssl">腾讯云ssl申请免费证书</a>、
+              <a href="https://cloud.tencent.com/document/product/400/35244" target="_blank">Nginx 服务器 SSL 证书安装部署</a>
+            </div>
             <div class="nginx-conf-main">
               <pre>
 # 阿里云 windows 服务器 HTTPS server 配置参考（实际配置以官方文档为主）
@@ -354,22 +375,23 @@ server {
             </div>
           </details>
           <div style="display:flex;align-items: center;margin-top:15px;">
-            <el-button @click="getHttpsCert">加载当前目录证书文件</el-button>
+            <el-button type="primary" @click="getHttpsCert">加载当前目录证书文件</el-button>
             <span style="margin-left: 15px;">当前目录：</span>
             <el-input v-model="nginxCertPath" style="width: 300px;" />
           </div>
+          <!-- http://www.zuo11.com/blog/2021/1/koa-formdata.html -->
+          <div style="margin-top: 15px;">
+            <label for="file" style="margin-right: 10px;" class="desc">选择要上传的文件</label>
+            <input type="file" id="uploadFile" multiple @change="uploadFileChange">
+          </div>
           <div style="display: flex;flex-wrap: wrap;margin: 20px 0;">
-            <div v-for="item in httpsCertList"
-              style="padding: 15px;margin: 10px;border: 1px solid #ccc;border-radius:5px;">
+            <div v-for="item in httpsCertList" class="file-list-item">
               {{ item.name }}
-              <el-button type="text" @click="deleteFileWrap(item)">删除</el-button>
+              <el-button type="primary" text @click="deleteFileWrap(item)">删除</el-button>
             </div>
+            <div v-if="!httpsCertList.length" class="desc">暂无数据</div>
           </div>
-          <div>
-            <!-- http://www.zuo11.com/blog/2021/1/koa-formdata.html -->
-            <input type="file" id="file" multiple @change="uploadFileChange">
-          </div>
-          <div v-if="!httpsCertList.length">暂无数据</div>
+         
         </div>
         <!-- @end https_ssl - https证书管理 -->
       </div>
@@ -589,6 +611,8 @@ server {
           this.nginxMainPath = this.NGINX_PATH_LIST[index].path + '/nginx.conf'
           // 清空原先列表，防止修改问题
           this.mainNginxContent = ''
+          this.nginxFileList = []
+          this.httpsCertList = []
         },
         nginxOpt: _.debounce(function (opt) {
           let cmdMap = {
@@ -614,6 +638,7 @@ server {
               }
               // this.getShellFileList()
               this.mainNginxContent = data
+              // this.$message.success('获取 Nginx 配置成功')
             })
             .catch((err) => {
               console.log(err);
@@ -632,6 +657,7 @@ server {
               }
               this.nginxFileList = data
               isDelete && (this.curNginxFileIndex = 0) // 删除时，需要重置
+              // this.$message.success('获取 Nginx 配置成功')
             })
             .catch(function (err) {
               console.log(err);
