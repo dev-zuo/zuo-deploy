@@ -1,12 +1,15 @@
 # zuo-deploy
+
 用 js 写一个 CI、CD 工具，实现细节文档: [Vue + Node.js 从 0 到 1 实现自动化部署工具](http://www.zuo11.com/blog/2022/2/zuo_deploy_think.html)
 
-![version-v0.3.1](https://img.shields.io/badge/version-v0.3.1-yellow.svg) ![license-MIT](https://img.shields.io/badge/license-MIT-green.svg) 
+![version-v0.3.1](https://img.shields.io/badge/version-v0.3.1-yellow.svg) ![license-MIT](https://img.shields.io/badge/license-MIT-green.svg)
 
 npm package
 
 [![NPM](https://nodei.co/npm/zuo-deploy.png)](https://npmjs.org/package/zuo-deploy)
+
 ## 使用
+
 ```bash
 # 全局安装
 npm install zuo-deploy pm2 -g
@@ -37,19 +40,23 @@ zuoblog init --disable-dev-server
 
 echo "部署完成!"
 ```
+
 ![docImages/deploy-log.png](./docImages/deploy-log.png)
 
 ## 服务 log 查询
+
 zuodeploy start 会用 pm2 开启一个 zuodeploy 服务，再次执行 zuodeploy start 会删除原服务，再次开启新服务。**如果开启失败，重新运行一次命令即可**
+
 ```bash
 # 查看 log
 pm2 log
 pm2 log zuodeploy --lines 1000 # 指定行
 ```
 
-
 ## 其他
+
 ### 推荐部署脚本
+
 ```bash
 echo "开始部署..."
 
@@ -68,6 +75,7 @@ git log -1
 
 echo "部署完成!"
 ```
+
 ### eslint+prettier
 
 ```bash
@@ -87,12 +95,16 @@ npm install eslint-plugin-prettier --save-dev # 将 prettier 以插件形式集�
 ```
 
 ### pm2 相关
+
 防止 terminal node xx.js 进程被杀掉，使用 pm2 像守护进程一样后台执行
+
 ```js
 pm2 stop zuodeoploy
 pm2 start src/index.js -n 'zuodeoploy'
 ```
+
 跨文件传参, 文件读写
 
 ## License
+
 MIT
