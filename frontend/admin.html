@@ -112,6 +112,14 @@
       border-radius: 5px;
       padding: 15px 20px;
     }
+
+    .nginx-wrap {
+      font-size: 14px;
+      background: #4154ff10;
+      border-radius: 5px;
+      padding: 15px 20px;
+      margin: 10px 0;
+    }
   </style>
 </head>
 
@@ -229,41 +237,47 @@
 
       <!-- @start nginx_admin -->
       <div v-show="curNav === 'NGINX_ADMIN'" style="position: relative;">
-        <div style="position: absolute;top:10px;right:10px;">
+        <div style="display: flex; align-items: center;margin-top:10px;">
+          <div style="margin-right: 30px;">
+            当前服务器系统：
+            <el-radio-group v-model="curNginxSysIndex" class="ml-4" @change="curNginxSysChange">
+              <el-radio v-for="(item, index) in NGINX_PATH_LIST" :key="item.key" :label="index">
+                <span :title="item.desc">{{item.key}}</span>
+              </el-radio>
+            </el-radio-group>
+          </div>
+          <p class="desc" style="margin-right: 20px;">Nginx 操作</p>
           <el-button @click="nginxOpt('start')">启动nginx</el-button>
-          <el-button @click="nginxOpt('reload')">重启nginx</el-button>
-          <el-button @click="nginxOpt('stop')">停止nginx</el-button>
+          <el-button type="primary" @click="nginxOpt('reload')">重启nginx</el-button>
+          <el-button type="danger" @click="nginxOpt('stop')">停止nginx</el-button>
         </div>
-        <div>
-          服务器系统：
-          <!-- <div> ubuntu 系统默认安装目录 /etc/nginx/nginx.conf </div>
-        <div> macOs 系统默认安装目录 /usr/local/etc/nginx.conf </div> -->
-          <el-radio-group v-model="curNginxSysIndex" class="ml-4" @change="curNginxSysChange">
-            <el-radio v-for="(item, index) in NGINX_PATH_LIST" :key="item.key" :label="index" size="large">
-              <span :title="item.desc">{{item.key}}</span>
-            </el-radio>
-          </el-radio-group>
+        <div class="nginx-wrap">
+          <div style="display: flex;justify-content: space-between;max-width: 1000px;">
+            <div>配置目录: {{NGINX_PATH_LIST[curNginxSysIndex].path}}</div>
+            <div>多配置目录: {{NGINX_PATH_LIST[curNginxSysIndex].multiplePath}}</div>
+            <div>项目目录: {{NGINX_PATH_LIST[curNginxSysIndex].defaultProjectPath}}</div>
+            <div>https证书目录: {{NGINX_PATH_LIST[curNginxSysIndex].path}}/cert</div>
+          </div>
         </div>
-        <div>nginx默认配置目录:{{NGINX_PATH_LIST[curNginxSysIndex].path}}</div>
-        <div>nginx默认项目目录:{{NGINX_PATH_LIST[curNginxSysIndex].defaultProjectPath}}</div>
         <!-- <div>推荐多项目配置文件目录: /etc/nginx/sites-available/* </div> -->
         <el-tabs v-model="curNginxTab" @tab-change="curNginxTabChange">
-          <el-tab-pane label="主配置" name="NGINX_ADMIN_MAIN"></el-tab-pane>
-          <el-tab-pane label="多项目独立nginx配置文件管理" name="NGINX_ADMIN_MULTIPLE"></el-tab-pane>
-          <el-tab-pane label="https证书管理" name="NGINX_ADMIN_HTTPS"></el-tab-pane>
+          <el-tab-pane label="Nginx 主配置" name="NGINX_ADMIN_MAIN"></el-tab-pane>
+          <el-tab-pane label="多项目独立 Nginx 配置" name="NGINX_ADMIN_MULTIPLE"></el-tab-pane>
+          <el-tab-pane label="Https证书管理" name="NGINX_ADMIN_HTTPS"></el-tab-pane>
         </el-tabs>
         <!-- @start nginx admin - 主配置-->
         <div v-show="curNginxTab === 'NGINX_ADMIN_MAIN'">
-          <div style="display:flex;align-items: center;margin-top:15px;">
-            <el-button @click="getNginxConfig">加载nginx配置文件</el-button>
-            <span style="margin-left: 15px;">{{NGINX_PATH_LIST[curNginxSysIndex].path + '/nginx.conf'}}</span>
+          <div style="display:flex;align-items: center;margin-top:8px;">
+            <el-button type="primary" @click="getNginxConfig">加载 Nginx 配置文件</el-button>
+            <span style="margin-left: 15px;">当前文件：</span>
+            <el-input v-model="nginxMainPath" style="width: 300px;" />
           </div>
-          <div class="nginx-conf-main" v-if="curNginxConfigContent" style="position: relative">
+          <div class="nginx-conf-main" v-if="mainNginxContent" style="position: relative">
             <div style="position: absolute;top:10px;right:10px;">
               <el-button @click="editNginxFile">修改</el-button>
-              <el-button @click="deleteFileWrap" disabled>删除</el-button>
+              <el-button type="danger" @click="deleteFileWrap" disabled>删除</el-button>
             </div>
-            <pre>{{curNginxConfigContent}}</pre>
+            <pre>{{mainNginxContent}}</pre>
           </div>
         </div>
         <!-- @end nginx admin - 主配置-->
@@ -424,7 +438,7 @@ server {
           password: '',
           isLogin: false,
           shellText: '', // shell 脚本内容
-          curNav: 'SHELL_ADMIN', // SHELL_RUN, SHELL_ADMIN, NGINX_ADMIN
+          curNav: 'NGINX_ADMIN', // SHELL_RUN, SHELL_ADMIN, NGINX_ADMIN
           shellList: [],
           curShellTabIndex: 0,
           shellMsgObj: {},
@@ -438,11 +452,11 @@ server {
           },
           curNginxSysIndex: 0,
           NGINX_PATH_LIST: [
-            { key: 'ubuntu', path: '/etc/nginx', defaultProjectPath: '/var/www/html/', multiplePath: '/etc/nginx/sites-enabled/', desc: 'ubuntu系统ng默认目录' },
-            { key: 'mac', path: '/usr/local/etc/nginx', defaultProjectPath: '/usr/local/var/www/', multiplePath: '/usr/local/etc/nginx/', desc: 'mac系统ng默认目录' },
-            { key: '自定义', path: 'todo', desc: '手动指定目录' }
+            { key: 'Ubuntu', path: '/etc/nginx', defaultProjectPath: '/var/www/', multiplePath: '/etc/nginx/sites-enabled/', desc: 'ubuntu系统ng默认目录' },
+            { key: 'Mac', path: '/usr/local/etc/nginx', defaultProjectPath: '/usr/local/var/www/', multiplePath: '/usr/local/etc/nginx/servers/', desc: 'mac系统ng默认目录' },
+            { key: '其他', path: '/etc/nginx', defaultProjectPath: '/var/www/',  multiplePath: '/etc/nginx/sites-enabled/', desc: '手动指定目录' }
           ],
-          curNginxConfigContent: '',
+          mainNginxContent: '',
           curNginxTab: 'NGINX_ADMIN_MAIN',
           nginxMultiplePath: '/etc/nginx/sites-enabled/', // ubuntu
           nginxCertPath: '/etc/nginx/cert',
@@ -456,6 +470,7 @@ server {
           ],
           processCwd: '', // 服务运行路径，基础路径
           isClearLog: false, // 清空日志再运行
+          nginxMainPath: '/etc/nginx/nginx.conf'
         }
       },
       computed: {
@@ -571,8 +586,11 @@ server {
         curNginxSysChange(index) {
           this.nginxMultiplePath = this.NGINX_PATH_LIST[index].multiplePath
           this.nginxCertPath = this.NGINX_PATH_LIST[index].path + '/cert'
+          this.nginxMainPath = this.NGINX_PATH_LIST[index].path + '/nginx.conf'
+          // 清空原先列表，防止修改问题
+          this.mainNginxContent = ''
         },
-        nginxOpt(opt) {
+        nginxOpt: _.debounce(function (opt) {
           let cmdMap = {
             'start': 'sudo nginx',
             'reload': 'sudo nginx -s reload',
@@ -581,9 +599,10 @@ server {
           this.curNav = 'SHELL_RUN'
           this.shellText = cmdMap[opt]
           this.runShell()
-        },
-        getNginxConfig() {
-          let curPath = this.NGINX_PATH_LIST[this.curNginxSysIndex].path
+        }, 500),
+        getNginxConfig: _.debounce(function () {
+          this.mainNginxContent = ''
+          let curPath = this.nginxMainPath
           axios.get('/nginx/get', { params: { curPath } })
             .then((response) => {
               // handle success
@@ -594,13 +613,13 @@ server {
                 return
               }
               // this.getShellFileList()
-              this.curNginxConfigContent = data
+              this.mainNginxContent = data
             })
             .catch((err) => {
               console.log(err);
               this.$message.error(err?.message)
             })
-        },
+        }, 300),
         getMultipleNginxConfig(isDelete) {
           axios.get('/nginx/multipleGet', { params: { curPath: this.nginxMultiplePath } })
             .then((response) => {
@@ -619,7 +638,7 @@ server {
               this.$message.error(err.message)
             })
         },
-        addFile: _.debounce(function() {
+        addFile: _.debounce(function () {
           let formData = {
             name: '',
             content: '',
@@ -710,12 +729,12 @@ server {
             content
           })
         }, 300),
-        editNginxFile(type) {
+        editNginxFile: _.debounce(function (type) {
           this.editDialogVisible = true
           let formData = {
-            curPath: this.NGINX_PATH_LIST[this.curNginxSysIndex].path,
+            curPath: this.nginxMainPath.split('/nginx.conf')[0],
             name: 'nginx.conf',
-            content: this.curNginxConfigContent
+            content: this.mainNginxContent
           }
           if (type === 'multiple') {
             let { name, content } = this.nginxFileList[this.curNginxFileIndex]
@@ -726,7 +745,7 @@ server {
             }
           }
           Object.assign(this.form, formData)
-        },
+        }, 300),
         editFileSave(cb) {
           axios.post('/editFile', this.form)
             .then((response) => {

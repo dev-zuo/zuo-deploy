@@ -131,6 +131,10 @@ router.post("/runShell", async (ctx) => {
     fs.writeFileSync(shellFilePath, shellText);
   } catch (e) {
     console.log(e);
+    ctx.body = {
+      code: -1,
+      msg: e.message,
+    };
   }
 
   // // 执行部署脚本
@@ -141,8 +145,8 @@ router.post("/runShell", async (ctx) => {
         runCmd(
           "sh",
           [shellFilePath],
-          function (text) {
-            resolve(text);
+          function (text, isError) {
+            isError ? reject(new Error(text)) : resolve(text);
           },
           socketIo,
           "runShell"
@@ -377,7 +381,7 @@ router.get("/nginx/get", async (ctx) => {
   console.log(">>", curPath);
 
   try {
-    const content = fs.readFileSync(curPath + "/nginx.conf").toString();
+    const content = fs.readFileSync(curPath).toString();
     ctx.body = {
       code: 0,
       data: content,
