@@ -1,1 +1,1 @@
-sudo nginx
+ls

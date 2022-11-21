@@ -124,7 +124,7 @@ router.post("/runShell", async (ctx) => {
     return;
   }
 
-  let { shellText, shellName = "temp.sh" } = ctx.request.body;
+  let { shellText, shellName = "temp.sh", timeoutMinute = 2 } = ctx.request.body;
   const shellFilePath = process.cwd() + "/" + shellName;
   console.log("shellFilePath", shellFilePath);
   try {
@@ -149,7 +149,8 @@ router.post("/runShell", async (ctx) => {
             isError ? reject(new Error(text)) : resolve(text);
           },
           socketIo,
-          "runShell"
+          "runShell",
+          timeoutMinute
         );
       } catch (e) {
         logger.info(e);
@@ -236,7 +237,7 @@ router.post("/runCurShell", async (ctx) => {
     return;
   }
 
-  let { name } = ctx.request.body;
+  let { name, timeoutMinute } = ctx.request.body;
   const shellFilePath = process.cwd() + "/" + name;
   console.log("cur shellFilePath", shellFilePath);
 
@@ -248,11 +249,12 @@ router.post("/runCurShell", async (ctx) => {
         runCmd(
           "sh",
           [shellFilePath],
-          function (text) {
-            resolve(text);
+          function (text, isError) {
+            isError ? reject(new Error(text)) : resolve(text);
           },
           socketIo,
-          "shell-log-" + name
+          "shell-log-" + name,
+          timeoutMinute
         );
       } catch (e) {
         logger.info(e);
