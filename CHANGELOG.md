@@ -1,6 +1,13 @@
 
 # CHANGELOG
 
+## 1.0.8（2022-11-22）
+
+- feat: 新增部署脚本超时时间设置
+- feat: 将外部引用 static 文件，切换到个人 cdn
+- fix: 修复 child 不能正常终止问题
+- docs: 更新 README.md
+
 ## 1.0.7（2022-11-08）
 
 zuo-deploy 升级为 Linux 操作面板
