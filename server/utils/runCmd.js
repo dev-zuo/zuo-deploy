@@ -1,11 +1,14 @@
 const fs = require("fs");
 const logger = require("./logger");
+const { spawn } = require('child_process');
+
 let timeoutTimer = undefined;
 
 // 使用子进程执行命令
-function runCmd(cmd, args, callback, socketIo, msgTag = "common-msg") {
-  const spawn = require("child_process").spawn;
+function runCmd(cmd, args, callback, socketIo, msgTag = "common-msg", timeoutMinute = 2) {
   const child = spawn(cmd, args); // sh xxx.sh
+  socketIo && socketIo.emit(msgTag, `[system] runCmd: ${args[0]}, ${msgTag}`);
+  socketIo && socketIo.emit(msgTag, `[system] 超时限制：${timeoutMinute} 分钟;`);
   let resp = "";
   // let resp = "当前执行路径：" + process.cwd() + "\n";
   // logger.info(resp);
@@ -29,7 +32,9 @@ function runCmd(cmd, args, callback, socketIo, msgTag = "common-msg") {
       // 如果已结束
       callback("运行超时，已停止", "isError");
       timeoutTimer && clearTimeout(timeoutTimer);
-      socketIo && socketIo.emit(msgTag, `[system] child.killed, 结束`);
+      socketIo && socketIo.emit(msgTag, `[system] ${child.pid} child.killed, 结束`);
+      // fix 进程被 kill 后，还在不断接收数据问题（使用 pm2 log 测试得出该结论）
+      child.stdout.off("data", dataFunc);
       return;
     }
     let info = buffer.toString();
@@ -75,13 +80,13 @@ function runCmd(cmd, args, callback, socketIo, msgTag = "common-msg") {
     socketIo &&
       socketIo.emit(
         msgTag,
-        `>>> [system] child close 完成运行! 耗时：${useTime}s`
+        `>>> [system] ${child.pid} child close 完成运行! 耗时：${useTime}s`
       );
   });
 
-  const TIME_OUT_SEC = 1000 * 60;
+  const TIME_OUT_SEC = 1000 * 60 * timeoutMinute;
   timeoutTimer = setTimeout(() => {
-    let log = `>>> [system] 执行超时 ${TIME_OUT_SEC / 1000}s，结束执行!`;
+    let log = `>>> [system]  ${child.pid} 执行超时 ${TIME_OUT_SEC / 1000}s，结束执行!`;
     socketIo && socketIo.emit(msgTag, log);
     child.kill();
   }, TIME_OUT_SEC);
