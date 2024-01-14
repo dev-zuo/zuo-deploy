@@ -10,6 +10,29 @@
 
 ## 使用
 
+如果是一台全新的服务器，需要先安装 node、git、nginx，如果已安装，可以跳过这一步
+
+```bash
+# 以一台全新的 centos 为例，安装基础环境
+
+# 1、安装 git
+yum install git -y
+
+# 2、使用 nvm 安装 node
+git clone https://gitee.com/mirrors/nvm.git ~/.nvm && cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`
+echo ". ~/.nvm/nvm.sh" >> /etc/profile
+source /etc/profile
+nvm install v14.19.0
+nvm install 16.19.0
+nvm use 14.19.0
+# 设置 npm 镜像为淘宝源
+npm config set registry https://registry.npmmirror.com/
+
+# 3、安装 nginx
+yum install -y nginx
+```
+
+安装
 ```bash
 # 全局安装
 npm install zuo-deploy pm2 -g
