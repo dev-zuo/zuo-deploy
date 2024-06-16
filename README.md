@@ -49,6 +49,11 @@ zuodeploy start
 # 如果是服务器：服务器ip:7777
 ```
 
+> 注意: 如果使用的是云服务器, 需要配置安全组放行对应的端口才能正常访问(默认7777).请看示例
+
+![image](https://github.com/Alioth996/zuo-deploy/assets/64628135/f4fad983-0bdd-4773-a7b8-4a9f52fa1b1b)
+
+
 ## 部署脚本管理
 
 支持多项目并行部署，log 互不干扰。新建脚本注意文件名需要以 .sh 命名
