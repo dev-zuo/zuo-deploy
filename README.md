@@ -49,10 +49,13 @@ zuodeploy start
 # 如果是服务器：服务器ip:7777
 ```
 
-> 注意: 如果使用的是云服务器, 需要配置安全组放行对应的端口才能正常访问(默认7777).请看示例
+**注意: 如果使用的是云服务器, 请开放防火墙及配置安全组放行. 以下为示例**
 
+**配置安全组**:
 ![image](https://github.com/Alioth996/zuo-deploy/assets/64628135/f4fad983-0bdd-4773-a7b8-4a9f52fa1b1b)
 
+**防火墙放行**:
+![image](https://github.com/Alioth996/zuo-deploy/assets/64628135/e46bf610-f3ca-463c-8d8b-d21947c615d5)
 
 ## 部署脚本管理
 
